@@ -213,8 +213,10 @@ class Wheelie (Node):
         self._set_motor_speeds()
 
     def _cmd_vel_callback(self, msg):
+        # rospy.loginfo("In camjam's _cmd_vel_callback")
         self.speed = msg.linear.x
-        self.spin = msg.angular.z
+        self.spin = msg.angular.z /10
+        #rospy.loginfo(f"self.speed: {self.speed:.3f} self.spin: {self.spin:.3f} msg.angular.z: {msg.angular.z:.3f}")
         self._set_motor_speeds()
 
     def _range_callback(self, msg):
@@ -269,6 +271,8 @@ class Wheelie (Node):
         #
         self._rightWheel.run(right_percentage)
         self._leftWheel.run(left_percentage)
+        rospy.loginfo(f"right_percentage: {right_percentage:.3f} left_percentage: {left_percentage:.3f}")
+
 
 
 
