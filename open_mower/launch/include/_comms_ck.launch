@@ -12,13 +12,13 @@
         <param name="mow_esc_serial_port" value="/dev/ttyAMA3"/>
     </node>
     
-    <include file="$(find open_mower)/launch/include/_gps.launch">
-        <arg name="serial_port" value="ttyAMA1"/>
-        <arg name="ntrip_ip" value="192.168.178.55"/>
-        <arg name="ntrip_port" value="2101"/>
-        <arg name="ntrip_endpoint" value="BASE1"/>
-        <arg name="ntrip_user" value="gps"/>
-        <arg name="ntrip_password" value="gps"/>
+    <include file="$(find open_mower)/launch/include/_gps_melk.launch">
+        <arg name="serial_port" default="ttyACM1"/>
+        <arg name="ntrip_ip" default="192.168.1.31"/>
+        <arg name="ntrip_port" default="2101"/>
+        <arg name="ntrip_endpoint" default="BASE1"/>
+        <arg name="ntrip_user" default="gps"/>
+        <arg name="ntrip_password" default="gps"/>
     </include>
 
 
