@@ -4,5 +4,5 @@
 <launch>
     <include file="$(find cherokey)/launch/include/_rosserial.launch"/>
 
-    <node pkg="cherokey" type="ck_controller.py" name="ck_controller" required="true" />
+    <node pkg="cherokey" type="ck_controller_2.py" name="ck_controller_2" required="true" output="screen" />
 </launch>
