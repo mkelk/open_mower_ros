@@ -19,6 +19,7 @@ class Cherokey():
     Assumes node created and running already
     Creates listener on /cherokey/command to accept string-style commands.
     Creates listener on /cherokey/cmd_vel to accept twist messages.
+    Creates listener on /cherokey/speedspin to accept messages directly from OpenMower
 
     Attributes
     ----------
@@ -70,7 +71,8 @@ class Cherokey():
 
         # create subscribers
         self._command_subscription = rospy.Subscriber('cherokey/command', String, self._command_callback)
-        self._cmd_vel_subscription = rospy.Subscriber('cherokey/cmd_vel', String, self._cmd_vel_callback)
+        self._cmd_vel_subscription = rospy.Subscriber('cherokey/cmd_vel', Twist, self._cmd_vel_callback)
+        self._cmd_vel_subscription = rospy.Subscriber('cherokey/speedspin', String, self._cmd_speedspin)
 
         # just testing
         self._set_motor_speeds()
@@ -103,6 +105,14 @@ class Cherokey():
     def _cmd_vel_callback(self, msg):
         self.speed = msg.linear.x
         self.spin = msg.angular.z
+        self._set_motor_speeds()
+
+    def _cmd_speedspin(self, msg):
+        self.speed = float(msg.data.split()[0])
+        self.spin = float(msg.data.split()[1])
+        rospy.loginfo(f"Got speedspin topic message {msg.data}")
+        # self.speed = 0.0
+        # self.spin = 0.0
         self._set_motor_speeds()
 
     def _set_motor_speeds(self):

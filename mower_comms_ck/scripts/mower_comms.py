@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 #!/usr/bin/env python3
 
+from tabnanny import check
 import rospy
+from std_msgs.msg import String
 from geometry_msgs.msg import Twist
 from mower_msgs.msg import Status, ImuRaw, ESCStatus
 from mower_msgs.srv import MowerControlSrv, MowerControlSrvResponse, EmergencyStopSrv, EmergencyStopSrvResponse, GPSControlSrv
@@ -27,6 +29,7 @@ speed_mow = 0.0
 emergency_high_level = False
 status_pub = None
 imu_pub = None
+cherokey_pub = None
 last_imu_ts = rospy.Time()
 last_cmd_vel = rospy.Time()
 ll_status_mutex = threading.Lock()
@@ -85,7 +88,9 @@ def publishActuators():
         speed_l = 0
         speed_r = 0
         speed_mow = 0
-    rospy.loginfo("Publishing actuators")
+    rospy.loginfo(f"Publishing actuators {speed_l} {speed_r}")
+    cherokey_pub.publish(f"{speed_l} 0")
+    # cherokey_pub.publish(f"0 0")
     # try:
     #     write_motor(comms_left, 0, -int(speed_l*1000))
     # except Exception:
@@ -230,6 +235,7 @@ def main():
     global speed_l
     global speed_r
     global status_pub
+    global cherokey_pub
     global imu_pub
     global last_imu_ts
 
@@ -242,6 +248,7 @@ def main():
     mow_service = rospy.Service("mower_service/mow_enabled", MowerControlSrv, setMowEnabled)
     emergency_service = rospy.Service("mower_service/emergency", EmergencyStopSrv, setEmergencyStop)
     cmd_vel_sub = rospy.Subscriber("cmd_vel",Twist, velReceived, tcp_nodelay=True)
+    cherokey_pub = rospy.Publisher("cherokey/speedspin", String, queue_size=10)
 
     # while IMU.connected == False:
     #     rospy.logwarn("ICM-20948 not connected")
@@ -250,6 +257,7 @@ def main():
     last_imu_ts = rospy.Time.now()
     rospy.loginfo("mower_comms readying timer")
     publish_timer = rospy.timer.Timer(rospy.Duration(0.02), publishActuatorsTimerTask)
+    # publish_timer = rospy.timer.Timer(rospy.Duration(1.0), publishActuatorsTimerTask)
 
     rate = rospy.Rate(20.0)
     while not rospy.is_shutdown():
