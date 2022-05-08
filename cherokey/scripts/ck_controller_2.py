@@ -110,9 +110,10 @@ class Cherokey():
         self._set_motor_speeds()
 
     def _cmd_speedspin(self, msg):
+        # TODO: use real ROS custom message for communicating speed
         self.speed = float(msg.data.split()[0])
         self.spin = float(msg.data.split()[1])
-        rospy.loginfo(f"Got speedspin topic message {msg.data}")
+        # rospy.loginfo(f"Got speedspin topic message {msg.data}")
         # self.speed = 0.0
         # self.spin = 0.0
         self._set_motor_speeds()
@@ -165,11 +166,9 @@ class Cherokey():
         left_signal_abs = int(min(left_signal_abs, signal_range))
         right_signal_abs = int(min(right_signal_abs, signal_range))
         #
-        # self._rightWheel.run(right_percentage)
-        # self._leftWheel.run(left_percentage)
-        rospy.loginfo(f"left_mps: {left_mps:.3f} right_mps: {right_mps:.3f}")
-        rospy.loginfo(f"left_target_rpm: {left_target_rpm:.3f} right_target_rpm: {right_target_rpm:.3f}")
-        rospy.loginfo(f"left_signal_abs: {left_signal_abs:.3f} right_signal_abs: {right_signal_abs:.3f}")
+        # rospy.logdebug(f"left_mps: {left_mps:.3f} right_mps: {right_mps:.3f}")
+        # rospy.logdebug(f"left_target_rpm: {left_target_rpm:.3f} right_target_rpm: {right_target_rpm:.3f}")
+        # rospy.logdebug(f"left_signal_abs: {left_signal_abs:.3f} right_signal_abs: {right_signal_abs:.3f}")
 
         pub_wheels.publish(left_signal_abs, left_dir, right_signal_abs, right_dir)        
 

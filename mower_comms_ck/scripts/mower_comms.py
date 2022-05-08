@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-#!/usr/bin/env python3
 
 import math
 
@@ -95,7 +94,7 @@ def publishActuators():
     # really a math hack, did not have time..
     spin_cal_factor = 0.4
     spin = -(speed_l - speed_r) * spin_cal_factor
-    rospy.loginfo(f"Publishing actuators {speed_l} {speed_r}")
+     # rospy.loginfo(f"Publishing actuators {speed_l} {speed_r}")
     cherokey_pub.publish(f"{speed} {spin}")
     # cherokey_pub.publish(f"0 0")
     # try:
