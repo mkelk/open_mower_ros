@@ -1,23 +1,25 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
+#!/usr/bin/env python3
+
 import rospy
 from geometry_msgs.msg import Twist
 from mower_msgs.msg import Status, ImuRaw, ESCStatus
 from mower_msgs.srv import MowerControlSrv, MowerControlSrvResponse, EmergencyStopSrv, EmergencyStopSrvResponse, GPSControlSrv
 
-import qwiic_icm20948
+# import qwiic_icm20948
 
 import serial
 import struct
 import sys
 import time
-import crcmod.predefined
+# import crcmod.predefined
 import threading
 from collections import namedtuple
 
-comms_left = serial.Serial(port='/dev/ttyAMA1', baudrate=115200, bytesize=serial.EIGHTBITS, stopbits=serial.STOPBITS_ONE, parity=serial.PARITY_NONE, timeout=0.1)
-comms_right = serial.Serial(port='/dev/ttyAMA2', baudrate=115200, bytesize=serial.EIGHTBITS, stopbits=serial.STOPBITS_ONE, parity=serial.PARITY_NONE, timeout=0.1)
+# comms_left = serial.Serial(port='/dev/ttyAMA1', baudrate=115200, bytesize=serial.EIGHTBITS, stopbits=serial.STOPBITS_ONE, parity=serial.PARITY_NONE, timeout=0.1)
+# comms_right = serial.Serial(port='/dev/ttyAMA2', baudrate=115200, bytesize=serial.EIGHTBITS, stopbits=serial.STOPBITS_ONE, parity=serial.PARITY_NONE, timeout=0.1)
 
-IMU = qwiic_icm20948.QwiicIcm20948()
+# IMU = qwiic_icm20948.QwiicIcm20948()
 
 speed_l = 0.0
 speed_r = 0.0
@@ -33,7 +35,7 @@ ll_status = {
   'right': None,
 }
 
-xmodem = crcmod.predefined.mkPredefinedCrcFun('xmodem')
+# xmodem = crcmod.predefined.mkPredefinedCrcFun('xmodem')
 MotorData = namedtuple('MotorData', [
     'ticks',
     'currentDC',
@@ -83,14 +85,15 @@ def publishActuators():
         speed_l = 0
         speed_r = 0
         speed_mow = 0
-    try:
-        write_motor(comms_left, 0, -int(speed_l*1000))
-    except Exception:
-        rospy.logerr("Error writing to left motor serial port", exc_info=True)
-    try:
-        write_motor(comms_right, 0, int(speed_r*1000))
-    except Exception:
-        rospy.logerr("Error writing to right motor serial port", exc_info=True)
+    rospy.loginfo("Publishing actuators")
+    # try:
+    #     write_motor(comms_left, 0, -int(speed_l*1000))
+    # except Exception:
+    #     rospy.logerr("Error writing to left motor serial port", exc_info=True)
+    # try:
+    #     write_motor(comms_right, 0, int(speed_r*1000))
+    # except Exception:
+    #     rospy.logerr("Error writing to right motor serial port", exc_info=True)
 
 def publishStatus():
     # TODO: should this acquire a lock in mower_comms.cpp?
@@ -143,7 +146,7 @@ def publishStatus():
     status_pub.publish(status_msg)
 
 def publishActuatorsTimerTask(*args, **kwargs):
-    handleLowLevelIMU()
+    # handleLowLevelIMU() # don't have one yet
     publishActuators()
     publishStatus()
 
@@ -187,11 +190,13 @@ def handleLowLevelStatus():
     global ll_status
     left_data = right_data = None
     try:
-        left_data = read_motor(comms_left)
+        # left_data = read_motor(comms_left)
+        left_data = MotorData(0, 0, 0, True)
     except IOError as e:
         rospy.logwarn("Failed to read left motor status: {}".format(e))
     try:
-        right_data = read_motor(comms_right)
+        # right_data = read_motor(comms_right)
+        right_data = MotorData(0, 0, 0, True)
     except IOError as e:
         rospy.logwarn("Failed to read right motor status: {}".format(e))
     with ll_status_mutex:
@@ -220,6 +225,7 @@ def handleLowLevelIMU():
 
 def main():
     rospy.init_node('mower_comms')
+    rospy.loginfo("mower_comms ck starting")
 
     global speed_l
     global speed_r
@@ -237,15 +243,17 @@ def main():
     emergency_service = rospy.Service("mower_service/emergency", EmergencyStopSrv, setEmergencyStop)
     cmd_vel_sub = rospy.Subscriber("cmd_vel",Twist, velReceived, tcp_nodelay=True)
 
-    while IMU.connected == False:
-        rospy.logwarn("ICM-20948 not connected")
-    IMU.begin()
-    last_imu_ts = rospy.Time.now()
+    # while IMU.connected == False:
+    #     rospy.logwarn("ICM-20948 not connected")
+    # IMU.begin()
 
+    last_imu_ts = rospy.Time.now()
+    rospy.loginfo("mower_comms readying timer")
     publish_timer = rospy.timer.Timer(rospy.Duration(0.02), publishActuatorsTimerTask)
 
     rate = rospy.Rate(20.0)
     while not rospy.is_shutdown():
+        # rospy.loginfo("mower_comms loop")
         handleLowLevelStatus()
         # handleLowLevelIMU moved to publishActuatorsTimerTask to mimic the real IMU messages rate of every 20ms
         rate.sleep()

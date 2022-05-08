@@ -5,7 +5,7 @@
 <launch>
     <!-- TODO: Add parameter for simulation -->
 
-    <node pkg="mower_comms" type="mower_comms" name="mower_comms">
+    <node pkg="mower_comms_ck" type="mower_comms.py" name="mower_comms" output="screen" required="true">
         <param name="ll_serial_port" value="/dev/ttyAMA0"/>
         <param name="left_esc_serial_port" value="/dev/ttyAMA2"/>
         <param name="right_esc_serial_port" value="/dev/ttyAMA4"/>

@@ -20,7 +20,7 @@
 #include <mower_msgs/Status.h>
 #include <mower_msgs/ImuRaw.h>
 #include <nav_msgs/Odometry.h>
-#include "ublox_msgs/NavRELPOSNED9.h"
+#include <ublox_msgs/NavRELPOSNED9.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
