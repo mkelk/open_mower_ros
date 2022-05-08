@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 #!/usr/bin/env python3
 
+import math
+
 from tabnanny import check
 import rospy
 from std_msgs.msg import String
@@ -88,8 +90,13 @@ def publishActuators():
         speed_l = 0
         speed_r = 0
         speed_mow = 0
+    # hackish implementation, TODO: make better
+    speed = math.sqrt(speed_l*speed_l+speed_r*speed_r)
+    # really a math hack, did not have time..
+    spin_cal_factor = 0.4
+    spin = -(speed_l - speed_r) * spin_cal_factor
     rospy.loginfo(f"Publishing actuators {speed_l} {speed_r}")
-    cherokey_pub.publish(f"{speed_l} 0")
+    cherokey_pub.publish(f"{speed} {spin}")
     # cherokey_pub.publish(f"0 0")
     # try:
     #     write_motor(comms_left, 0, -int(speed_l*1000))
@@ -257,7 +264,7 @@ def main():
     last_imu_ts = rospy.Time.now()
     rospy.loginfo("mower_comms readying timer")
     publish_timer = rospy.timer.Timer(rospy.Duration(0.02), publishActuatorsTimerTask)
-    # publish_timer = rospy.timer.Timer(rospy.Duration(1.0), publishActuatorsTimerTask)
+    #publish_timer = rospy.timer.Timer(rospy.Duration(1.0), publishActuatorsTimerTask)
 
     rate = rospy.Rate(20.0)
     while not rospy.is_shutdown():

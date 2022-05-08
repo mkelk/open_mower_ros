@@ -13,6 +13,8 @@ from geometry_msgs.msg import Twist
 # custom messages used by rosserial to communicate with Arduino on Cherokey
 from cherokey_msgs.msg import WheelState
 
+cherokey_pub = None
+
 class Cherokey():
     '''Cherokey node that abstracts the Arduino-controlled motors
 
@@ -151,7 +153,7 @@ class Cherokey():
         right_signal = (right_target_rpm / self._right_max_rpm) * signal_range
         #
         left_dir = -1 if left_signal < 0 else 1
-        right_dir = -1 if left_signal < 0 else 1
+        right_dir = -1 if right_signal < 0 else 1
         left_signal_abs = left_signal * left_dir
         right_signal_abs = right_signal * right_dir
 
@@ -169,7 +171,6 @@ class Cherokey():
         rospy.loginfo(f"left_target_rpm: {left_target_rpm:.3f} right_target_rpm: {right_target_rpm:.3f}")
         rospy.loginfo(f"left_signal_abs: {left_signal_abs:.3f} right_signal_abs: {right_signal_abs:.3f}")
 
-        pub_wheels = rospy.Publisher("wheels_set_state", WheelState, queue_size=10)
         pub_wheels.publish(left_signal_abs, left_dir, right_signal_abs, right_dir)        
 
 
@@ -178,11 +179,16 @@ class Cherokey():
 if __name__ == '__main__':
     rospy.loginfo("cherokey is starting")
 
+    global pub_wheels
+
     # start node
     node = rospy.init_node("cherokey")
+    
+    # start publisher for sending data over rosserial to Arduino on Cherokey
+    pub_wheels = rospy.Publisher("wheels_set_state", WheelState, queue_size=10)
 
-    # register Cherokey and its subscriptions and start node
-    # cherokey = Cherokey('cherokey', left_max_rpm=195, right_max_rpm=202)
+
+    # start cherokey 
     cherokey = Cherokey('cherokey', cal_distance=1.25, cal_time=5, skew=1.15)
     rospy.loginfo("cherokey started")
 
@@ -229,11 +235,6 @@ if __name__ == '__main__':
     cherokey.speed = 0 # in meters/sec
     cherokey._set_motor_speeds()
     rospy.sleep(1.0)
-
-
-
-
-
 
 
     rospy.spin()
