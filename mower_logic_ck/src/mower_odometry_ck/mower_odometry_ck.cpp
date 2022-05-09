@@ -156,6 +156,7 @@ void imuReceived(const mower_msgs::ImuRaw::ConstPtr &msg) {
 
 
 void gpsPositionReceived(const ublox_msgs::NavRELPOSNED9::ConstPtr &msg) {
+    ROS_INFO("melk: GPS data received from navrelposned");
     ublox_msgs::NavRELPOSNED9 gps = *msg;
     double gps_accuracy_m = (double) gps.accLength / 10000.0f;
 
@@ -259,9 +260,14 @@ void gpsPositionReceived(const ublox_msgs::NavRELPOSNED9::ConstPtr &msg) {
 
 
 bool statusReceivedOrientation(const mower_msgs::Status::ConstPtr &msg) {
+    return true;
+}
+
+
+bool statusReceivedOrientationOrg(const mower_msgs::Status::ConstPtr &msg) {
 
     if (!hasImuMessage) {
-        ROS_INFO("waiting for imu message");
+        ROS_INFO_THROTTLE(1, "waiting for imu message");
         return false;
     }
 
@@ -398,9 +404,11 @@ int main(int argc, char **argv) {
     gps_outlier_count = 0;
     gpsOdometryValid = false;
 
-    ros::Subscriber status_sub = n.subscribe("mower/status", 100, statusReceived);
-    ros::Subscriber imu_sub = n.subscribe("mower/imu", 100, imuReceived);
+    // ros::Subscriber status_sub = n.subscribe("mower/status", 100, statusReceived);
+    // ros::Subscriber imu_sub = n.subscribe("mower/imu", 100, imuReceived);
+    ROS_INFO_STREAM("melk: registering ublox/navrelposned subscriber");
     ros::Subscriber gps_sub = n.subscribe("ublox/navrelposned", 100, gpsPositionReceived);
+    ROS_INFO_STREAM("melk: registered ublox/navrelposned subscriber");
 
     ros::spin();
     return 0;
