@@ -212,6 +212,7 @@ class Wheelie (Node):
 
         self._set_motor_speeds()
 
+
     def _cmd_vel_callback(self, msg):
         # rospy.loginfo("In camjam's _cmd_vel_callback")
         self.speed = msg.linear.x
