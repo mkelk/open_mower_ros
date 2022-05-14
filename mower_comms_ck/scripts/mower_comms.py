@@ -9,7 +9,7 @@ from geometry_msgs.msg import Twist
 from mower_msgs.msg import Status, ImuRaw, ESCStatus
 from mower_msgs.srv import MowerControlSrv, MowerControlSrvResponse, EmergencyStopSrv, EmergencyStopSrvResponse, GPSControlSrv
 
-# import qwiic_icm20948
+import qwiic_icm20948
 
 import serial
 import struct
@@ -22,7 +22,7 @@ from collections import namedtuple
 # comms_left = serial.Serial(port='/dev/ttyAMA1', baudrate=115200, bytesize=serial.EIGHTBITS, stopbits=serial.STOPBITS_ONE, parity=serial.PARITY_NONE, timeout=0.1)
 # comms_right = serial.Serial(port='/dev/ttyAMA2', baudrate=115200, bytesize=serial.EIGHTBITS, stopbits=serial.STOPBITS_ONE, parity=serial.PARITY_NONE, timeout=0.1)
 
-# IMU = qwiic_icm20948.QwiicIcm20948()
+IMU = qwiic_icm20948.QwiicIcm20948(address=0x68)
 
 speed_l = 0.0
 speed_r = 0.0
@@ -157,7 +157,7 @@ def publishStatus():
     status_pub.publish(status_msg)
 
 def publishActuatorsTimerTask(*args, **kwargs):
-    # handleLowLevelIMU() # don't have one yet
+    handleLowLevelIMU() 
     publishActuators()
     publishStatus()
 
@@ -262,8 +262,8 @@ def main():
 
     last_imu_ts = rospy.Time.now()
     rospy.loginfo("mower_comms readying timer")
-    #publish_timer = rospy.timer.Timer(rospy.Duration(0.02), publishActuatorsTimerTask)
-    publish_timer = rospy.timer.Timer(rospy.Duration(5.0), publishActuatorsTimerTask)
+    publish_timer = rospy.timer.Timer(rospy.Duration(0.02), publishActuatorsTimerTask)
+    #publish_timer = rospy.timer.Timer(rospy.Duration(5.0), publishActuatorsTimerTask)
 
     rate = rospy.Rate(20.0)
     while not rospy.is_shutdown():
