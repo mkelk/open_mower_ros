@@ -30,9 +30,11 @@ speed_mow = 0.0
 emergency_high_level = False
 status_pub = None
 imu_pub = None
-cherokey_pub = None
+# cherokey_pub = None
+cherokey_pub_cmd_vel = None
 last_imu_ts = rospy.Time()
 last_cmd_vel = rospy.Time()
+cmd_vel = None
 ll_status_mutex = threading.Lock()
 ll_status = {
   'left': None,
@@ -78,16 +80,29 @@ def publishActuators():
     global speed_r
     global speed_mow
     global last_cmd_vel
+    global cmd_vel
     if is_emergency():
         speed_l = 0
         speed_r = 0
         speed_mow = 0
+        cmd_vel = Twist()
+        cmd_vel.linear.x = 0
+        cmd_vel.linear.y = 0
+        cmd_vel.angular.z = 0
     if rospy.Time.now() - last_cmd_vel > rospy.Duration(1):
         speed_l = 0
         speed_r = 0
+        cmd_vel = Twist()
+        cmd_vel.linear.x = 0
+        cmd_vel.linear.y = 0
+        cmd_vel.angular.z = 0
     if rospy.Time.now() - last_cmd_vel > rospy.Duration(25):
         speed_l = 0
         speed_r = 0
+        cmd_vel = Twist()
+        cmd_vel.linear.x = 0
+        cmd_vel.linear.y = 0
+        cmd_vel.angular.z = 0
         speed_mow = 0
     # hackish implementation, TODO: make better
     speed = math.sqrt(speed_l*speed_l+speed_r*speed_r)
@@ -95,7 +110,9 @@ def publishActuators():
     spin_cal_factor = 0.4
     spin = -(speed_l - speed_r) * spin_cal_factor
      # rospy.loginfo(f"Publishing actuators {speed_l} {speed_r}")
-    cherokey_pub.publish(f"{speed} {spin}")
+    # cherokey_pub.publish(f"{speed} {spin}")
+    cherokey_pub_cmd_vel.publish(cmd_vel)
+    
     # cherokey_pub.publish(f"0 0")
     # try:
     #     write_motor(comms_left, 0, -int(speed_l*1000))
@@ -182,8 +199,10 @@ def velReceived(msg):
     global speed_l
     global speed_r
     global last_cmd_vel
+    global cmd_vel
 
     last_cmd_vel = rospy.Time.now()
+    cmd_vel = msg
     # TODO: figure out why the signs are reversed in mower_comms.cpp
     speed_l = msg.linear.x - msg.angular.z;
     speed_r = msg.linear.x + msg.angular.z;
@@ -242,6 +261,7 @@ def main():
     global speed_r
     global status_pub
     global cherokey_pub
+    global cherokey_pub_cmd_vel
     global imu_pub
     global last_imu_ts
 
@@ -254,7 +274,8 @@ def main():
     mow_service = rospy.Service("mower_service/mow_enabled", MowerControlSrv, setMowEnabled)
     emergency_service = rospy.Service("mower_service/emergency", EmergencyStopSrv, setEmergencyStop)
     cmd_vel_sub = rospy.Subscriber("cmd_vel",Twist, velReceived, tcp_nodelay=True)
-    cherokey_pub = rospy.Publisher("cherokey/speedspin", String, queue_size=10)
+    # cherokey_pub = rospy.Publisher("cherokey/speedspin", String, queue_size=10)
+    cherokey_pub_cmd_vel = rospy.Publisher("cherokey/cmd_vel", Twist, queue_size=10)
 
     # while IMU.connected == False:
     #     rospy.logwarn("ICM-20948 not connected")
