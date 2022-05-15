@@ -20,7 +20,7 @@ class Cherokey():
 
     Assumes node created and running already
     Creates listener on /cherokey/command to accept string-style commands.
-    Creates listener on /cherokey/cmd_vel to accept twist messages.
+    Creates listener on /cherokey/cmd_vel to accept twist messages sent specifically to Cherokey.
     Creates listener on /cherokey/speedspin to accept messages directly from OpenMower
 
     Attributes
@@ -74,7 +74,7 @@ class Cherokey():
         # create subscribers
         self._command_subscription = rospy.Subscriber('cherokey/command', String, self._command_callback)
         self._cmd_vel_subscription = rospy.Subscriber('cherokey/cmd_vel', Twist, self._cmd_vel_callback)
-        self._cmd_vel_subscription = rospy.Subscriber('cherokey/speedspin', String, self._cmd_speedspin)
+        self._speedspin_subscription = rospy.Subscriber('cherokey/speedspin', String, self._cmd_speedspin)
 
         # just testing
         self._set_motor_speeds()
@@ -106,7 +106,9 @@ class Cherokey():
 
     def _cmd_vel_callback(self, msg):
         self.speed = msg.linear.x
-        self.spin = msg.angular.z
+        # Note: Hand-adjusted calibration here...
+        # very hard to turn the Cherokey
+        self.spin = msg.angular.z / 3
         self._set_motor_speeds()
 
     def _cmd_speedspin(self, msg):
@@ -204,36 +206,36 @@ if __name__ == '__main__':
 
     #while not rospy.is_shutdown():
     # do some basic tests
-    cherokey.spin = 0
+    # cherokey.spin = 0
 
-    cherokey.speed = 0.1 # in meters/sec
-    cherokey._set_motor_speeds()
-    rospy.sleep(1.0)
+    # cherokey.speed = 0.1 # in meters/sec
+    # cherokey._set_motor_speeds()
+    # rospy.sleep(1.0)
 
-    cherokey.speed = 0.1 # in meters/sec
-    cherokey._set_motor_speeds()
-    rospy.sleep(1.0)
+    # cherokey.speed = 0.1 # in meters/sec
+    # cherokey._set_motor_speeds()
+    # rospy.sleep(1.0)
 
-    cherokey.speed = 0.1 # in meters/sec
-    cherokey._set_motor_speeds()
-    rospy.sleep(1.0)
+    # cherokey.speed = 0.1 # in meters/sec
+    # cherokey._set_motor_speeds()
+    # rospy.sleep(1.0)
 
-    # back up one metre...
-    cherokey.speed = -0.5 # in meters/sec
-    cherokey._set_motor_speeds()
-    rospy.sleep(2.0)
+    # # back up one metre...
+    # cherokey.speed = -0.5 # in meters/sec
+    # cherokey._set_motor_speeds()
+    # rospy.sleep(2.0)
 
-    cherokey.speed = 0.0 # in meters/sec
-    cherokey._set_motor_speeds()
-    rospy.sleep(10.0)
+    # cherokey.speed = 0.0 # in meters/sec
+    # cherokey._set_motor_speeds()
+    # rospy.sleep(10.0)
 
-    cherokey.speed = 10.0 # in meters/sec
-    cherokey._set_motor_speeds()
-    rospy.sleep(5.0)
+    # cherokey.speed = 10.0 # in meters/sec
+    # cherokey._set_motor_speeds()
+    # rospy.sleep(5.0)
 
-    cherokey.speed = 0 # in meters/sec
-    cherokey._set_motor_speeds()
-    rospy.sleep(1.0)
+    # cherokey.speed = 0 # in meters/sec
+    # cherokey._set_motor_speeds()
+    # rospy.sleep(1.0)
 
 
     rospy.spin()
