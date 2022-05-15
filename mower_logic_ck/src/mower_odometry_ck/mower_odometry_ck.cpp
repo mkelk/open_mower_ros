@@ -180,7 +180,9 @@ void gpsPositionReceived(const ublox_msgs::NavRELPOSNED9::ConstPtr &msg) {
         return;
     }
 
-    if (gps_accuracy_m > 0.05) {
+    // melk: TODO: increased for testing
+    // if (gps_accuracy_m > 0.05) {
+    if (gps_accuracy_m > 0.20) {
         ROS_INFO_STREAM("dropping gps with accuracy: " << gps_accuracy_m << "m");
         return;
     }
