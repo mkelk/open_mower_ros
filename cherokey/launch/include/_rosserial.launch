@@ -2,7 +2,7 @@
     Use this file to launch rosserial for comms with Cherokey
  -->
 <launch>
-    <node name="serial_node" pkg="rosserial_python" type="serial_node.py" required="true">
+    <node name="serial_node" pkg="rosserial_python" type="serial_node.py" required="true" output="screen">
             <param name="port" value="/dev/ttyUSB0"/>
     </node>
 </launch>

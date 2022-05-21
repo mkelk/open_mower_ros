@@ -277,9 +277,9 @@ def main():
     # cherokey_pub = rospy.Publisher("cherokey/speedspin", String, queue_size=10)
     cherokey_pub_cmd_vel = rospy.Publisher("cherokey/cmd_vel", Twist, queue_size=10)
 
-    # while IMU.connected == False:
-    #     rospy.logwarn("ICM-20948 not connected")
-    # IMU.begin()
+    while IMU.connected == False:
+        rospy.logwarn("ICM-20948 not connected")
+    IMU.begin()
 
     last_imu_ts = rospy.Time.now()
     rospy.loginfo("mower_comms readying timer")

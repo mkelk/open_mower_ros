@@ -51,10 +51,12 @@ visualization_msgs::Marker marker;
 
 
 void odom_received(const nav_msgs::Odometry &odom_msg) {
+    ROS_INFO_STREAM("melk: In area_recorder , odom_received");
     last_odom = odom_msg;
     has_odom = true;
 }
 void joy_received(const sensor_msgs::Joy &joy_msg) {
+    ROS_INFO_STREAM("melk: In area_recorder , joy_received");
 
     if (joy_msg.buttons[1] && !last_joy.buttons[1]) {
         // B was pressed. We toggle recording state
@@ -215,6 +217,7 @@ bool getDockingPosition(geometry_msgs::Pose &pos) {
 
 
 int main(int argc, char **argv) {
+    ROS_INFO_STREAM("melk in area_recorder: Starting 1");
     ros::init(argc, argv, "area_recorder");
     tf2_ros::TransformListener tfListener(tfBuffer);
 
@@ -224,6 +227,7 @@ int main(int argc, char **argv) {
     ros::ServiceClient client = n.serviceClient<mower_map::AddMowingAreaSrv>("mower_map_service/add_mowing_area");
     ros::ServiceClient set_docking_point_client = n.serviceClient<mower_map::SetDockingPointSrv>("mower_map_service/set_docking_point");
 
+    ROS_INFO_STREAM("melk in area_recorder: Starting 2");
 
 
     marker_pub = n.advertise<visualization_msgs::Marker>("area_recorder/progress_visualization", 10);
@@ -250,6 +254,7 @@ int main(int argc, char **argv) {
     ros::AsyncSpinner spinner(1);
     spinner.start();
 
+    ROS_INFO_STREAM("melk in area_recorder: Starting 3 loop");
     ros::Rate inputDelay(ros::Duration().fromSec(0.1));
     while(ros::ok()) {
         mower_map::MapArea result;
@@ -258,6 +263,7 @@ int main(int argc, char **argv) {
 
 
         while (ros::ok() && !finished_all && !error) {
+            ROS_INFO_STREAM("melk in area_recorder: Looking for input for recording");
 
             if(set_docking_position) {
                 geometry_msgs::Pose pos;

@@ -8,6 +8,7 @@ import math
 
 import rospy
 from std_msgs.msg import String
+from std_msgs.msg import UInt16
 from geometry_msgs.msg import Twist
 
 # custom messages used by rosserial to communicate with Arduino on Cherokey
@@ -40,7 +41,8 @@ class Cherokey():
     '''
     def __init__(self, name,
                  wheel_diameter=.066, wheel_base=0.14,
-                 cal_distance=1.25, cal_time=5, skew=1.02):
+                 cal_distance=1.25, cal_duty=100, cal_time=5, skew=1.02,
+                 pwm_freq=25):
         """
         Parameters
         ----------
@@ -56,10 +58,13 @@ class Cherokey():
             when running at 100% power
         cal_time : float
             Time elapsed in the calibration tst
+        cal_duty : int
+            Internal size of signal to motors in testing
         skew : float
             how much faster is left wheel than right, for correction, e.g. 1.02
         """
-        max_rpm = cal_distance / (wheel_diameter * math.pi) / cal_time * 60
+        self._signal_range = 255 
+        max_rpm = cal_distance / (wheel_diameter * math.pi) / cal_time * 60 / cal_duty * self._signal_range
         self._left_max_rpm = max_rpm * (1+(skew-1)/2)
         self._right_max_rpm = max_rpm * (1-(skew-1)/2)
         rospy.loginfo(f"max rpm: {max_rpm}")
@@ -67,6 +72,7 @@ class Cherokey():
         rospy.loginfo(f"max rpm right: {self._right_max_rpm}")
         self._wheel_diameter = wheel_diameter
         self._wheel_base = wheel_base
+        self._pwm_freq = pwm_freq
 
         self.speed = 0.0
         self.spin = 0.0
@@ -75,6 +81,11 @@ class Cherokey():
         self._command_subscription = rospy.Subscriber('cherokey/command', String, self._command_callback)
         self._cmd_vel_subscription = rospy.Subscriber('cherokey/cmd_vel', Twist, self._cmd_vel_callback)
         self._speedspin_subscription = rospy.Subscriber('cherokey/speedspin', String, self._cmd_speedspin)
+
+        # set motor pwm freq
+        # Note: TODO melk: we might want to make this a service to ensure that it is reveived
+        # we might also want to wait to ensure that rosserial is running and sees the rover
+        pub_freq.publish(self._pwm_freq)
 
         # just testing
         self._set_motor_speeds()
@@ -124,7 +135,6 @@ class Cherokey():
         # TODO: inject a stop() if no speeds seen for a while
         #
         # max value that can be written to wheels, corresponding to the set max_rpm values
-        signal_range = 255 
         # First figure out the speed of each wheel based on spin: each wheel
         # covers self._wheel_base meters in one radian, so the target speed
         # for each wheel in meters per sec is spin (radians/sec) times
@@ -152,8 +162,8 @@ class Cherokey():
         left_percentage = max(min(left_percentage, 100.0), -100.0)
         right_percentage = max(min(right_percentage, 100.0), -100.0)
         #
-        left_signal = (left_target_rpm / self._left_max_rpm) * signal_range
-        right_signal = (right_target_rpm / self._right_max_rpm) * signal_range
+        left_signal = (left_target_rpm / self._left_max_rpm) * self._signal_range
+        right_signal = (right_target_rpm / self._right_max_rpm) * self._signal_range
         #
         left_dir = -1 if left_signal < 0 else 1
         right_dir = -1 if right_signal < 0 else 1
@@ -162,15 +172,15 @@ class Cherokey():
 
         # clip to signal max and deliver int
         signal_max =  max(left_signal_abs, right_signal_abs)
-        if (signal_max > signal_range):
-            left_signal_abs = left_signal_abs / signal_max * signal_range
-            right_signal_abs = right_signal_abs / signal_max * signal_range
-        left_signal_abs = int(min(left_signal_abs, signal_range))
-        right_signal_abs = int(min(right_signal_abs, signal_range))
+        if (signal_max > self._signal_range):
+            left_signal_abs = left_signal_abs / signal_max * self._signal_range
+            right_signal_abs = right_signal_abs / signal_max * self._signal_range
+        left_signal_abs = int(min(left_signal_abs, self._signal_range))
+        right_signal_abs = int(min(right_signal_abs, self._signal_range))
         #
-        # rospy.logdebug(f"left_mps: {left_mps:.3f} right_mps: {right_mps:.3f}")
-        # rospy.logdebug(f"left_target_rpm: {left_target_rpm:.3f} right_target_rpm: {right_target_rpm:.3f}")
-        # rospy.logdebug(f"left_signal_abs: {left_signal_abs:.3f} right_signal_abs: {right_signal_abs:.3f}")
+        rospy.loginfo(f"left_mps: {left_mps:.3f} right_mps: {right_mps:.3f}")
+        rospy.loginfo(f"left_target_rpm: {left_target_rpm:.3f} right_target_rpm: {right_target_rpm:.3f}")
+        rospy.loginfo(f"left_signal_abs: {left_signal_abs:.3f} right_signal_abs: {right_signal_abs:.3f}")
 
         pub_wheels.publish(left_signal_abs, left_dir, right_signal_abs, right_dir)        
 
@@ -181,57 +191,40 @@ if __name__ == '__main__':
     rospy.loginfo("cherokey is starting")
 
     global pub_wheels
+    global pub_freq
 
     # start node
     node = rospy.init_node("cherokey")
     
     # start publisher for sending data over rosserial to Arduino on Cherokey
     pub_wheels = rospy.Publisher("wheels_set_state", WheelState, queue_size=10)
+    pub_freq = rospy.Publisher("pwm_freq_set", UInt16, queue_size=10)
 
 
     # start cherokey 
-    cherokey = Cherokey('cherokey', cal_distance=1.25, cal_time=5, skew=1.15)
+    cherokey = Cherokey('cherokey', cal_distance=1.1, cal_time=2, cal_duty=150,
+        skew=1.00)
     rospy.loginfo("cherokey started")
 
-    # register publisher for controlling physical wheels 
-    # rotspeed = 155
-    # while not rospy.is_shutdown() and rotspeed < 500:
-    #     rospy.loginfo(f"setting rot to {rotspeed}")
-    #     pub_wheels = rospy.Publisher("wheels_set_state", WheelState, queue_size=10)
-    #     pub_wheels.publish(rotspeed,1,rotspeed,1)
-    #     rospy.sleep(1.0)
-    #     rotspeed = rotspeed + 100
-    # pub_wheels.publish(0,1,0,1)
-
-
-    #while not rospy.is_shutdown():
     # do some basic tests
     # cherokey.spin = 0
 
-    # cherokey.speed = 0.1 # in meters/sec
-    # cherokey._set_motor_speeds()
-    # rospy.sleep(1.0)
-
-    # cherokey.speed = 0.1 # in meters/sec
-    # cherokey._set_motor_speeds()
-    # rospy.sleep(1.0)
-
-    # cherokey.speed = 0.1 # in meters/sec
-    # cherokey._set_motor_speeds()
-    # rospy.sleep(1.0)
-
-    # # back up one metre...
-    # cherokey.speed = -0.5 # in meters/sec
+    # cherokey.speed = 0.0 # in meters/sec
     # cherokey._set_motor_speeds()
     # rospy.sleep(2.0)
 
     # cherokey.speed = 0.0 # in meters/sec
     # cherokey._set_motor_speeds()
-    # rospy.sleep(10.0)
+    # rospy.sleep(2.0)
 
-    # cherokey.speed = 10.0 # in meters/sec
+    # pub_freq.publish(30)
+
+
+    # rospy.loginfo("straight stretch")
+
+    # cherokey.speed = 0.4 # in meters/sec
     # cherokey._set_motor_speeds()
-    # rospy.sleep(5.0)
+    # rospy.sleep(60.0)
 
     # cherokey.speed = 0 # in meters/sec
     # cherokey._set_motor_speeds()

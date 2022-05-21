@@ -82,6 +82,7 @@ double getGPSZ(ublox_msgs::NavRELPOSNED9 &msg) {
 
 
 void publishOdometry() {
+    ROS_INFO_STREAM("melk: in mower_odometry_ck, publishOdometry, begin");
     static tf2_ros::TransformBroadcaster transform_broadcaster;
 
 
@@ -146,10 +147,12 @@ void publishOdometry() {
 
 
     // publish the message
+    ROS_INFO_STREAM("melk: in mower_odometry_ck, publishing odom to publisher");
     odometry_pub.publish(odom);
 }
 
 void imuReceived(const mower_msgs::ImuRaw::ConstPtr &msg) {
+    ROS_INFO("melk: IMU received");    
     lastImu = *msg;
     hasImuMessage = true;
 }
@@ -167,31 +170,45 @@ void gpsPositionReceived(const ublox_msgs::NavRELPOSNED9::ConstPtr &msg) {
     bool refPosMiss = (msg->flags & 0b0000100) >> 6;
     bool refObsMiss = (msg->flags & 0b0000100) >> 7;
 
-    if (!gnssFixOK || !diffSoln || !relPosValid || carrSoln != 2) {
-        ROS_INFO_STREAM_THROTTLE(1,"Dropped at least one GPS update due to flags.\r\nFlags:\r\n" <<
-                                                                          "accuracy:" << gps_accuracy_m << "\r\n" <<
-                                                                          "gnssFixOK:" << gnssFixOK << "\r\n" <<
-                                                                          "diffSoln:" << diffSoln << "\r\n" <<
-                                                                          "relPosValid:" << relPosValid << "\r\n" <<
-                                                                          "carrSoln:" << (int) carrSoln << "\r\n" <<
-                                                                          "refPosMiss:" << refPosMiss << "\r\n" <<
-                                                                          "refObsMiss:" << refObsMiss << "\r\n"
-        );
-        return;
-    }
+    ROS_INFO_STREAM_THROTTLE(1,"GPS data:\r\nFlags:\r\n" <<
+                                                                        "accuracy:" << gps_accuracy_m << "\r\n" <<
+                                                                        "gnssFixOK:" << gnssFixOK << "\r\n" <<
+                                                                        "diffSoln:" << diffSoln << "\r\n" <<
+                                                                        "relPosValid:" << relPosValid << "\r\n" <<
+                                                                        "carrSoln:" << (int) carrSoln << "\r\n" <<
+                                                                        "refPosMiss:" << refPosMiss << "\r\n" <<
+                                                                        "refObsMiss:" << refObsMiss << "\r\n"
+    );
+
+
+    // melk: TODO loosen condition on carrSoln
+    // if (!gnssFixOK || !diffSoln || !relPosValid || carrSoln != 2) {
+    //     ROS_INFO_STREAM_THROTTLE(1,"Dropped at least one GPS update due to flags.\r\nFlags:\r\n" <<
+    //                                                                       "accuracy:" << gps_accuracy_m << "\r\n" <<
+    //                                                                       "gnssFixOK:" << gnssFixOK << "\r\n" <<
+    //                                                                       "diffSoln:" << diffSoln << "\r\n" <<
+    //                                                                       "relPosValid:" << relPosValid << "\r\n" <<
+    //                                                                       "carrSoln:" << (int) carrSoln << "\r\n" <<
+    //                                                                       "refPosMiss:" << refPosMiss << "\r\n" <<
+    //                                                                       "refObsMiss:" << refObsMiss << "\r\n"
+    //     );
+    //     return;
+    // }
 
     // melk: TODO: increased for testing
     // if (gps_accuracy_m > 0.05) {
-    if (gps_accuracy_m > 0.20) {
-        ROS_INFO_STREAM("dropping gps with accuracy: " << gps_accuracy_m << "m");
-        return;
-    }
+    // if (gps_accuracy_m > 0.20) {
+    //     ROS_INFO_STREAM("dropping gps with accuracy: " << gps_accuracy_m << "m");
+    //     return;
+    // }
 
+    ROS_INFO("melk: Testing: is GPS enabled");
     if (!gpsEnabled) {
         gpsOdometryValid = false;
         valid_gps_samples = 0;
         return;
     }
+    ROS_INFO("melk: GPS is enabled");
 
     double time_since_last_gps = (ros::Time::now() - last_gps_odometry_time).toSec();
     if (time_since_last_gps > 5.0) {
@@ -212,7 +229,7 @@ void gpsPositionReceived(const ublox_msgs::NavRELPOSNED9::ConstPtr &msg) {
             getGPSX(gps), getGPSY(gps), getGPSZ(gps)
     );
 
-//    ROS_INFO_STREAM("GOT GPS: " << gps_pos.x() << ", " << gps_pos.y());
+   ROS_INFO_STREAM("GOT GPS: " << gps_pos.x() << ", " << gps_pos.y());
 
 
     double distance_to_last_gps = (last_gps_pos - gps_pos).length();
@@ -244,6 +261,8 @@ void gpsPositionReceived(const ublox_msgs::NavRELPOSNED9::ConstPtr &msg) {
             x = x * (1.0 - config.gps_filter_factor) + config.gps_filter_factor * base_link_x;
             y = y * (1.0 - config.gps_filter_factor) + config.gps_filter_factor * base_link_y;
         }
+        ROS_INFO_STREAM("Inlier treated: " << x << ", " << y);
+
     } else {
         ROS_WARN_STREAM("GPS outlier found. Distance was: " << distance_to_last_gps);
         gps_outlier_count++;
@@ -261,12 +280,12 @@ void gpsPositionReceived(const ublox_msgs::NavRELPOSNED9::ConstPtr &msg) {
 }
 
 
-bool statusReceivedOrientation(const mower_msgs::Status::ConstPtr &msg) {
+bool statusReceivedOrientationFake(const mower_msgs::Status::ConstPtr &msg) {
     return true;
 }
 
 
-bool statusReceivedOrientationOrg(const mower_msgs::Status::ConstPtr &msg) {
+bool statusReceivedOrientation(const mower_msgs::Status::ConstPtr &msg) {
 
     if (!hasImuMessage) {
         ROS_INFO_THROTTLE(1, "waiting for imu message");
@@ -342,6 +361,7 @@ bool statusReceivedOrientationOrg(const mower_msgs::Status::ConstPtr &msg) {
 
 
 void statusReceived(const mower_msgs::Status::ConstPtr &msg) {
+    ROS_INFO_STREAM("melk: in mower_odometry_ck, statusReceived");
 
     // we need the differences, so initialize in the first run
     if (firstData) {
@@ -362,10 +382,13 @@ void statusReceived(const mower_msgs::Status::ConstPtr &msg) {
 //    ROS_INFO_STREAM("d_wheel_l = " << d_wheel_l << ", d_wheel_r = " << d_wheel_r);
 
     bool success = statusReceivedOrientation(msg);
+    ROS_INFO_STREAM("melk: statusReceivedOrientation: " << success);
 
     last_status = *msg;
 
+    ROS_INFO_STREAM("melk: in mower_odometry_ck, publishing odom, testing calling function");
     if (success) {
+        ROS_INFO_STREAM("melk: in mower_odometry_ck, publishing odom, calling function");
         publishOdometry();
     }
 }
@@ -406,8 +429,8 @@ int main(int argc, char **argv) {
     gps_outlier_count = 0;
     gpsOdometryValid = false;
 
-    // ros::Subscriber status_sub = n.subscribe("mower/status", 100, statusReceived);
-    // ros::Subscriber imu_sub = n.subscribe("mower/imu", 100, imuReceived);
+    ros::Subscriber status_sub = n.subscribe("mower/status", 100, statusReceived);
+    ros::Subscriber imu_sub = n.subscribe("mower/imu", 100, imuReceived);
     ROS_INFO_STREAM("melk: registering ublox/navrelposned subscriber");
     ros::Subscriber gps_sub = n.subscribe("ublox/navrelposned", 100, gpsPositionReceived);
     ROS_INFO_STREAM("melk: registered ublox/navrelposned subscriber");
