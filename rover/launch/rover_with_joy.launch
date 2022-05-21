@@ -17,9 +17,8 @@
         <param name="~enable_turbo_button" value="4"/>
     </node>
     
-    <include file="$(find cherokey)/launch/include/_rosserial.launch"/>
-
-    <node name="cherokey" pkg="cherokey" type="ck_controller_2.py" required="true" output="screen"/>
-    <node name="ck_joy_connect" pkg="cherokey" type="ck_joy_connect.py" required="true" output="screen"/>
+    <include file="$(find rover)/launch/include/_rover.launch"/>
+    
+    <node name="rover_joy_connect" pkg="rover" type="rover_joy_connect.py" required="true" output="screen"/>
     
 </launch>

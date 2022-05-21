@@ -1,9 +1,0 @@
-<!--
-    Use this file to launch the Cherokey controller
- -->
-<launch>
-
-    <include file="$(find cherokey)/launch/include/_rosserial.launch"/>
-
-    <node name="cherokey" pkg="cherokey" type="ck_controller_2.py" required="true" output="screen"/>
-</launch>
