@@ -121,6 +121,8 @@ class Cherokey():
         # very hard to turn the Cherokey
         self.spin = msg.angular.z / 3
         self._set_motor_speeds()
+        rospy.loginfo(f"spin set to: {self.spin}")
+        rospy.loginfo(f"speed set to: {self.speed}")
 
     def _cmd_speedspin(self, msg):
         # TODO: use real ROS custom message for communicating speed
@@ -186,7 +188,6 @@ class Cherokey():
 
 
 
-
 if __name__ == '__main__':
     rospy.loginfo("cherokey is starting")
 
@@ -203,12 +204,10 @@ if __name__ == '__main__':
 
     # start cherokey 
     cherokey = Cherokey('cherokey', cal_distance=1.1, cal_time=2, cal_duty=150,
-        skew=1.00)
+        skew=0.7)
     rospy.loginfo("cherokey started")
 
-    # do some basic tests
-    # cherokey.spin = 0
-
+    # # do some basic tests
     # cherokey.speed = 0.0 # in meters/sec
     # cherokey._set_motor_speeds()
     # rospy.sleep(2.0)
@@ -217,16 +216,22 @@ if __name__ == '__main__':
     # cherokey._set_motor_speeds()
     # rospy.sleep(2.0)
 
-    # pub_freq.publish(30)
-
-
-    # rospy.loginfo("straight stretch")
-
-    # cherokey.speed = 0.4 # in meters/sec
+    # rospy.loginfo("normal setting")
+    # cherokey.speed = -0.5 
+    # cherokey.spin = 0.0
     # cherokey._set_motor_speeds()
-    # rospy.sleep(60.0)
+    # rospy.sleep(5.0)
 
+
+    # rospy.loginfo("problem setting")
+    # cherokey.speed = -0.5 
+    # cherokey.spin = -0.16666666666666666 
+    # cherokey._set_motor_speeds()
+    # rospy.sleep(5)
+
+    # rospy.loginfo("stop")
     # cherokey.speed = 0 # in meters/sec
+    # cherokey.spin = 0.0
     # cherokey._set_motor_speeds()
     # rospy.sleep(1.0)
 
