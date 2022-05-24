@@ -51,12 +51,12 @@ visualization_msgs::Marker marker;
 
 
 void odom_received(const nav_msgs::Odometry &odom_msg) {
-    ROS_INFO_STREAM("melk: In area_recorder , odom_received");
+    ROS_DEBUG_STREAM("melk: In area_recorder , odom_received");
     last_odom = odom_msg;
     has_odom = true;
 }
 void joy_received(const sensor_msgs::Joy &joy_msg) {
-    ROS_INFO_STREAM("melk: In area_recorder , joy_received");
+    ROS_DEBUG_STREAM("melk: In area_recorder , joy_received");
 
     if (joy_msg.buttons[1] && !last_joy.buttons[1]) {
         // B was pressed. We toggle recording state
@@ -263,7 +263,7 @@ int main(int argc, char **argv) {
 
 
         while (ros::ok() && !finished_all && !error) {
-            ROS_INFO_STREAM("melk in area_recorder: Looking for input for recording");
+            ROS_DEBUG_STREAM("melk in area_recorder: Looking for input for recording");
 
             if(set_docking_position) {
                 geometry_msgs::Pose pos;
