@@ -6,7 +6,7 @@
     TAG: b34c
  -->
 <launch>
-    <arg name="serial_port" default="ttyACM1"/>
+    <arg name="serial_port" default="ttyACM0"/>
     <arg name="ntrip_ip" default="192.168.1.122"/>
     <arg name="ntrip_port" default="2101"/>
     <arg name="ntrip_endpoint" default="BASE1"/>
