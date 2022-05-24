@@ -23,4 +23,7 @@ Use this file to record a new map. Use a usb gamepad to move the bot. Controls a
         <param name="~scale_angular_turbo" value="1.0"/>
         <param name="~enable_turbo_button" value="4"/>
     </node>
+
+    <node name="rover_joy_connect" pkg="rover" type="rover_joy_connect.py" required="true" output="screen"/>
+
 </launch>
