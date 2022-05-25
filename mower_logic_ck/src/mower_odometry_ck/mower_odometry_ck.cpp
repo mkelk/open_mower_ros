@@ -82,7 +82,7 @@ double getGPSZ(ublox_msgs::NavRELPOSNED9 &msg) {
 
 
 void publishOdometry() {
-    // ROS_INFO_STREAM("melk: in mower_odometry_ck, publishOdometry, begin");
+    ROS_DEBUG_STREAM("melk: in mower_odometry_ck, publishOdometry, begin");
     static tf2_ros::TransformBroadcaster transform_broadcaster;
 
 
@@ -292,69 +292,60 @@ bool statusReceivedOrientation(const mower_msgs::Status::ConstPtr &msg) {
         return false;
     }
 
-
-
-
-//    geometry_msgs::TransformStamped imu_to_base_link = tfBuffer.lookupTransform(lastImu.header.frame_id, "base_link",
-//                                                                                lastImu.header.stamp);
-
-
-
-
-    double r_gyro = r - lastImu.gz * dt;
+    // get rotation angle of Rover according to rotational speed from IMU accel.meter x time delta, added to last rotation angle
+    double r_gyro = r + lastImu.gz * dt;
     while (r_gyro < 0) {
         r_gyro += 2.0 * M_PI;
     }
     r_gyro = fmod(r_gyro, 2.0 * M_PI);
     tf2::Quaternion q_gyro(0.0, 0.0, r_gyro);
 
+    double imu_x = lastImu.mx;
+    double imu_y = lastImu.my;
+    
+    ROS_INFO_STREAM(1,"Compass: Raw reading: " << " mx:" << imu_x << " my:" << imu_y << "\r\n");
 
+    double imu_x_adjusted = imu_x - (config.magnetic_offset_x);
+    double imu_y_adjusted = imu_y - (config.magnetic_offset_y);
 
-//    geometry_msgs::Quaternion base_link_pose;
-//    tf2::doTransform(imu_pose, base_link_pose, imu_to_base_link);
+    ROS_INFO_STREAM(1,"Compass: Adj reading: " << " mx:" << imu_x_adjusted << " my:" << imu_y_adjusted << "\r\n");
 
+    // get rotation angle according to IMU compass
+    double yaw = atan2(imu_y_adjusted, imu_x_adjusted);
 
-    double yaw = atan2(lastImu.my - (config.magnetic_offset_y),
-                       lastImu.mx - (config.magnetic_offset_x));
-
+    ROS_INFO_STREAM(1,"Compass: " << " yaw raw:" << yaw / (M_PI / 180.0) << "\r\n");
     yaw += config.imu_offset * (M_PI / 180.0);
     yaw = fmod(yaw + (M_PI_2), 2.0 * M_PI);
     while (yaw < 0) {
         yaw += M_PI * 2.0;
     }
 
+    // ROS_INFO_STREAM_THROTTLE(1,"Compass: " << " yaw pro:" << yaw << "\r\n");
 
     tf2::Quaternion q_mag(0.0, 0.0, yaw);
 
-
-//    r = yaw;
-//    dr = lastImu.angular_velocity.z;
-
-
     double d_ticks = (d_wheel_l + d_wheel_r) / 2.0;
 
-//    dr = yaw - r;
-//    dr = fmod(dr, 2.0 * M_PI);
-
-
-
+    // combine compass and rotation so that compass slowly wins in the long run, but accel.meter in the short run
     tf2::Quaternion q = q_gyro.slerp(q_mag, config.magnetic_filter_factor);
+
+    // this is the Rover direction angle
     orientation_result = tf2::toMsg(q);
 
-
+    // as matrix
     tf2::Matrix3x3 m(q);
     double unused1, unused2;
 
+    // get orientation angle r as Yaw from the matrix form
     m.getRPY(unused1, unused2, r);
 
-
+    // use orientation and ticks speed to get new (x,y) pos from old + directional vel x time delta
     x += d_ticks * cos(r);
     y += d_ticks * sin(r);
 
     vy = 0;
     vx = d_ticks / dt;
     vr = lastImu.gz;
-
 
     return true;
 }
