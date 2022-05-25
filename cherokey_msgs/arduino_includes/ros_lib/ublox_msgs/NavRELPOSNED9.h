@@ -18,8 +18,8 @@ namespace ublox_msgs
       _reserved1_type reserved1;
       typedef uint16_t _refStationId_type;
       _refStationId_type refStationId;
-      typedef uint32_t _iTow_type;
-      _iTow_type iTow;
+      typedef uint32_t _iTOW_type;
+      _iTOW_type iTOW;
       typedef int32_t _relPosN_type;
       _relPosN_type relPosN;
       typedef int32_t _relPosE_type;
@@ -71,7 +71,7 @@ namespace ublox_msgs
       version(0),
       reserved1(0),
       refStationId(0),
-      iTow(0),
+      iTOW(0),
       relPosN(0),
       relPosE(0),
       relPosD(0),
@@ -102,11 +102,11 @@ namespace ublox_msgs
       *(outbuffer + offset + 0) = (this->refStationId >> (8 * 0)) & 0xFF;
       *(outbuffer + offset + 1) = (this->refStationId >> (8 * 1)) & 0xFF;
       offset += sizeof(this->refStationId);
-      *(outbuffer + offset + 0) = (this->iTow >> (8 * 0)) & 0xFF;
-      *(outbuffer + offset + 1) = (this->iTow >> (8 * 1)) & 0xFF;
-      *(outbuffer + offset + 2) = (this->iTow >> (8 * 2)) & 0xFF;
-      *(outbuffer + offset + 3) = (this->iTow >> (8 * 3)) & 0xFF;
-      offset += sizeof(this->iTow);
+      *(outbuffer + offset + 0) = (this->iTOW >> (8 * 0)) & 0xFF;
+      *(outbuffer + offset + 1) = (this->iTOW >> (8 * 1)) & 0xFF;
+      *(outbuffer + offset + 2) = (this->iTOW >> (8 * 2)) & 0xFF;
+      *(outbuffer + offset + 3) = (this->iTOW >> (8 * 3)) & 0xFF;
+      offset += sizeof(this->iTOW);
       union {
         int32_t real;
         uint32_t base;
@@ -236,11 +236,11 @@ namespace ublox_msgs
       this->refStationId =  ((uint16_t) (*(inbuffer + offset)));
       this->refStationId |= ((uint16_t) (*(inbuffer + offset + 1))) << (8 * 1);
       offset += sizeof(this->refStationId);
-      this->iTow =  ((uint32_t) (*(inbuffer + offset)));
-      this->iTow |= ((uint32_t) (*(inbuffer + offset + 1))) << (8 * 1);
-      this->iTow |= ((uint32_t) (*(inbuffer + offset + 2))) << (8 * 2);
-      this->iTow |= ((uint32_t) (*(inbuffer + offset + 3))) << (8 * 3);
-      offset += sizeof(this->iTow);
+      this->iTOW =  ((uint32_t) (*(inbuffer + offset)));
+      this->iTOW |= ((uint32_t) (*(inbuffer + offset + 1))) << (8 * 1);
+      this->iTOW |= ((uint32_t) (*(inbuffer + offset + 2))) << (8 * 2);
+      this->iTOW |= ((uint32_t) (*(inbuffer + offset + 3))) << (8 * 3);
+      offset += sizeof(this->iTOW);
       union {
         int32_t real;
         uint32_t base;
@@ -370,7 +370,7 @@ namespace ublox_msgs
     }
 
     virtual const char * getType() override { return "ublox_msgs/NavRELPOSNED9"; };
-    virtual const char * getMD5() override { return "6dedd6e7018b83e2b0ae65fb6873207e"; };
+    virtual const char * getMD5() override { return "5acd7899c1f1094e1680da583d0ff1f9"; };
 
   };
 
