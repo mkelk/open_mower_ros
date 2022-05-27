@@ -79,7 +79,6 @@ class Cherokey():
         self.spin = 0.0
 
         # create subscribers
-        self._command_subscription = rospy.Subscriber('cherokey/command', String, self._command_callback)
         self._cmd_vel_subscription = rospy.Subscriber('/rover/cmd_vel', Twist, self._cmd_vel_callback)
 
         # set motor pwm freq
