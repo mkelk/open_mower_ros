@@ -57,11 +57,14 @@ double x = 0, y = 0, vx = 0.0, r = 0.0, vy = 0.0, vr = 0.0;
 geometry_msgs::Quaternion orientation_result;
 
 
-#define WHEEL_DISTANCE_M 0.325
-#define WHEEL_DIAMETER 0.19
+// #define WHEEL_DISTANCE_M 0.325
+#define WHEEL_DISTANCE_M 0.136
+// #define WHEEL_DIAMETER 0.19
+#define WHEEL_DIAMETER 0.068
 
 // (ticks / revolution) / (m / revolution)
-#define TICKS_PER_M (993.0 / (0.19*M_PI))
+// #define TICKS_PER_M (993.0 / (0.19*M_PI))
+#define TICKS_PER_M (   (40)   /   (WHEEL_DIAMETER*M_PI)  )
 
 
 tf2_ros::Buffer tfBuffer;
@@ -303,24 +306,24 @@ bool statusReceivedOrientation(const mower_msgs::Status::ConstPtr &msg) {
     double imu_x = lastImu.mx;
     double imu_y = lastImu.my;
     
-    ROS_INFO_STREAM(1,"Compass: Raw reading: " << " mx:" << imu_x << " my:" << imu_y << "\r\n");
+    ROS_DEBUG_STREAM("Compass: Raw reading: " << " mx:" << imu_x << " my:" << imu_y << "\r\n");
 
     double imu_x_adjusted = imu_x - (config.magnetic_offset_x);
     double imu_y_adjusted = imu_y - (config.magnetic_offset_y);
 
-    ROS_INFO_STREAM(1,"Compass: Adj reading: " << " mx:" << imu_x_adjusted << " my:" << imu_y_adjusted << "\r\n");
+    ROS_DEBUG_STREAM("Compass: Adj reading: " << " mx:" << imu_x_adjusted << " my:" << imu_y_adjusted << "\r\n");
 
     // get rotation angle according to IMU compass
     double yaw = atan2(imu_y_adjusted, imu_x_adjusted);
 
-    ROS_INFO_STREAM(1,"Compass: " << " yaw raw:" << yaw / (M_PI / 180.0) << "\r\n");
+    ROS_DEBUG_STREAM("Compass: " << " yaw raw:" << yaw / (M_PI / 180.0) << "\r\n");
     yaw += config.imu_offset * (M_PI / 180.0);
     yaw = fmod(yaw + (M_PI_2), 2.0 * M_PI);
     while (yaw < 0) {
         yaw += M_PI * 2.0;
     }
 
-    // ROS_INFO_STREAM_THROTTLE(1,"Compass: " << " yaw pro:" << yaw << "\r\n");
+    ROS_DEBUG_STREAM_THROTTLE(1,"Compass: " << " yaw pro:" << yaw << "\r\n");
 
     tf2::Quaternion q_mag(0.0, 0.0, yaw);
 
