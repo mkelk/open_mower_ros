@@ -31,7 +31,7 @@ std::string UndockingBehavior::state_name() {
 }
 
 Behavior *UndockingBehavior::execute() {
-    ROS_DEBUG("State: execute UndockingBehavior");
+    ROS_INFO("State: execute UndockingBehavior");
 
     // get robot's current pose from odometry.
     nav_msgs::Odometry odom = last_odom;

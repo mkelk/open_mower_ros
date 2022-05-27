@@ -134,14 +134,14 @@ def publishStatus():
 
     l_status = ESCStatus()
     if left_data is not None:
-        status_msg.v_battery = left_data.batteryVoltage/1000
-        status_msg.v_charge = left_data.charging
+        status_msg.v_battery = 30.0 # just a number high enough
+        status_msg.v_charge = 1.0 # melk: just some number
         status_msg.charge_current = 1 if left_data.charging else 0
         l_status.status = ESCStatus.ESC_STATUS_OK
         l_status.tacho = left_data.ticks
         l_status.current = left_data.currentDC/1000
         l_status.temperature_motor = 30
-        l_status.temperature_pcb = 30
+        l_status.temperature_pcb = 30   
     else:
         l_status.status = ESCStatus.ESC_STATUS_DISCONNECTED
 
@@ -156,6 +156,7 @@ def publishStatus():
         r_status.status = ESCStatus.ESC_STATUS_DISCONNECTED
     m_status = ESCStatus()
     m_status.status = ESCStatus.ESC_STATUS_OK
+    
 
     status_msg.left_esc_status = l_status
     status_msg.right_esc_status = r_status
@@ -219,12 +220,12 @@ def handleLowLevelStatus():
     left_data = right_data = None
     try:
         # left_data = read_motor(comms_left)
-        left_data = MotorData(ticks.ticksLeft, 0, 0, True)
+        left_data = MotorData(ticks.ticksLeft, 0.0, 0.0, True)
     except IOError as e:
         rospy.logwarn("Failed to read left motor status: {}".format(e))
     try:
         # right_data = read_motor(comms_right)
-        right_data = MotorData(ticks.ticksRight, 0, 0, True)
+        right_data = MotorData(ticks.ticksRight, 0.0, 0.0, True)
     except IOError as e:
         rospy.logwarn("Failed to read right motor status: {}".format(e))
     with ll_status_mutex:

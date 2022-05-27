@@ -83,6 +83,7 @@ void pauseExecution() {
     if (!mowingPaused) {
         ROS_INFO_STREAM("Requesting Pause");
     }
+    ROS_DEBUG_STREAM("State: Getting paused in mower_logic");
     mowingPaused = true;
 }
 
@@ -163,6 +164,7 @@ void checkSafety(const ros::TimerEvent &timer_event) {
     if (ros::Time::now() - odom_time > ros::Duration(1.0)) {
         setEmergencyMode(true);
         ROS_ERROR_STREAM("EMERGENCY: odometry values stopped. dt was: " << (ros::Time::now() - odom_time));
+        ROS_DEBUG_STREAM("State: EMERGENCY: odometry values stopped. dt was: " << (ros::Time::now() - odom_time));
         return;
     }
 
@@ -170,6 +172,7 @@ void checkSafety(const ros::TimerEvent &timer_event) {
     if (ros::Time::now() - status_time > ros::Duration(0.5)) {
         setEmergencyMode(true);
         ROS_ERROR_STREAM("EMERGENCY: status values stopped. dt was: " << (ros::Time::now() - status_time));
+        ROS_DEBUG_STREAM("State: EMERGENCY: status values stopped. dt was: " << (ros::Time::now() - status_time));
         return;
     }
 
@@ -179,6 +182,7 @@ void checkSafety(const ros::TimerEvent &timer_event) {
                 "EMERGENCY: at least one motor control errored. errors left: " << (last_status.left_esc_status)
                                                                                << ", status right: "
                                                                                << last_status.right_esc_status);
+        ROS_DEBUG_STREAM("State: At least one motor control errored");
         return;
     }
     // bool gpsGood = last_odom.pose.covariance[0] < 0.05 && last_odom.pose.covariance[0] > 0;
@@ -188,6 +192,7 @@ void checkSafety(const ros::TimerEvent &timer_event) {
 
     if (currentBehavior != nullptr && currentBehavior->needs_gps() && ros::Time::now() - last_good_gps > ros::Duration(5.0)) {
         ROS_WARN_STREAM("gps lost, stopping");
+        ROS_DEBUG_STREAM("State: gps lost, stopping");
         setEmergencyMode(true);
         return;
     }
@@ -200,11 +205,13 @@ void checkSafety(const ros::TimerEvent &timer_event) {
 
     if (last_status.v_battery < last_config.battery_empty_voltage || last_status.mow_esc_status.temperature_motor > 60.0 ||
         last_config.manual_pause_mowing) {
+        ROS_DEBUG_STREAM("State: Docking needed in mower_comms");
         dockingNeeded = true;
     }
 
     if (dockingNeeded) {
         pauseExecution();
+        ROS_DEBUG_STREAM("State: Docking needed in mower_comms, pausing");
     }
 }
 

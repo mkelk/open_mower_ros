@@ -41,7 +41,7 @@ class Cherokey():
 
     '''
     def __init__(self, name,
-                 wheel_diameter=.066, wheel_base=0.14,
+                 wheel_diameter=0.068, wheel_base=0.136,
                  cal_distance=1.25, cal_duty=100, cal_time=5, skew=1.02,
                  pwm_freq=25):
         """
@@ -103,7 +103,7 @@ class Cherokey():
         self.speed = msg.linear.x
         # Note: Hand-adjusted calibration here...
         # very hard to turn the Cherokey
-        self.spin = msg.angular.z / 3
+        self.spin = msg.angular.z 
         rospy.logdebug(f"spin set to: {self.spin}")
         rospy.logdebug(f"speed set to: {self.speed}")
         self._set_motor_speeds()
@@ -155,9 +155,9 @@ class Cherokey():
         left_signal_abs = int(min(left_signal_abs, self._signal_range))
         right_signal_abs = int(min(right_signal_abs, self._signal_range))
         #
-        rospy.logdebug(f"left_mps: {left_mps:.3f} right_mps: {right_mps:.3f}")
-        rospy.logdebug(f"left_target_rpm: {left_target_rpm:.3f} right_target_rpm: {right_target_rpm:.3f}")
-        rospy.logdebug(f"left_signal_abs: {left_signal_abs:.3f} right_signal_abs: {right_signal_abs:.3f}")
+        # rospy.loginfo(f"left_mps: {left_mps:.3f} right_mps: {right_mps:.3f}")
+        # rospy.loginfo(f"left_target_rpm: {left_target_rpm:.3f} right_target_rpm: {right_target_rpm:.3f}")
+        # rospy.loginfo(f"left_signal_abs: {left_signal_abs:.3f} right_signal_abs: {right_signal_abs:.3f}")
 
         pub_wheels.publish(left_signal_abs, left_dir, right_signal_abs, right_dir)        
 
@@ -188,8 +188,7 @@ if __name__ == '__main__':
 
 
     # start cherokey 
-    cherokey = Cherokey('cherokey', cal_distance=1.1, cal_time=2, cal_duty=150,
-        skew=0.7)
+    cherokey = Cherokey('cherokey', cal_distance=1.1, cal_time=2, cal_duty=150, skew=0.7)
     rospy.loginfo("cherokey started")
 
     # # do some basic tests
@@ -199,13 +198,17 @@ if __name__ == '__main__':
 
     # cherokey.speed = 0.0 # in meters/sec
     # cherokey._set_motor_speeds()
-    # rospy.sleep(2.0)
+    # rospy.sleep(10.0)
 
     # rospy.loginfo("normal setting")
-    # cherokey.speed = -0.5 
+    # cherokey.speed = 0.25
     # cherokey.spin = 0.0
     # cherokey._set_motor_speeds()
-    # rospy.sleep(5.0)
+    # rospy.sleep(4.0)
+
+    # cherokey.speed = 0.0 # in meters/sec
+    # cherokey._set_motor_speeds()
+    # rospy.sleep(1.0)
 
 
     # rospy.loginfo("problem setting")

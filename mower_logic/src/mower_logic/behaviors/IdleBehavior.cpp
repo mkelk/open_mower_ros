@@ -31,14 +31,14 @@ std::string IdleBehavior::state_name() {
 }
 
 Behavior *IdleBehavior::execute() {
-    ROS_DEBUG("State: execute IdleBehavior");
+    ROS_INFO("State: execute IdleBehavior");
 
 
     ros::Rate r(1);
     while (ros::ok()) {
         stop();
 
-        if (last_config.manual_start_mowing ||
+        if (last_config.manual_start_mowing &&
             (last_status.v_battery > config.battery_full_voltage && last_status.mow_esc_status.temperature_motor < 45.0 &&
              !last_config.manual_pause_mowing)) {
             mowingPaused = false;
