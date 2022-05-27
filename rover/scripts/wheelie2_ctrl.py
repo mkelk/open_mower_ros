@@ -13,6 +13,7 @@ from geometry_msgs.msg import Twist
 
 # custom messages used by rosserial to communicate with Arduino on Cherokey
 from cherokey_msgs.msg import WheelState
+from cherokey_msgs.msg import Ticks
 
 cherokey_pub = None
 
@@ -79,8 +80,7 @@ class Cherokey():
 
         # create subscribers
         self._command_subscription = rospy.Subscriber('cherokey/command', String, self._command_callback)
-        self._cmd_vel_subscription = rospy.Subscriber('cherokey/cmd_vel', Twist, self._cmd_vel_callback)
-        self._speedspin_subscription = rospy.Subscriber('cherokey/speedspin', String, self._cmd_speedspin)
+        self._cmd_vel_subscription = rospy.Subscriber('/rover/cmd_vel', Twist, self._cmd_vel_callback)
 
         # set motor pwm freq
         # Note: TODO melk: we might want to make this a service to ensure that it is reveived
@@ -186,20 +186,30 @@ class Cherokey():
 
         pub_wheels.publish(left_signal_abs, left_dir, right_signal_abs, right_dir)        
 
-
+def ticks_callback(ticks):
+    pub_ticks.publish(ticks) 
+    rospy.logdebug(f"Ticks left in Rover: {ticks.ticksLeft}")
+    rospy.logdebug(f"Ticks right in Rover: {ticks.ticksRight}")
 
 if __name__ == '__main__':
     rospy.loginfo("cherokey is starting")
 
     global pub_wheels
     global pub_freq
+    global pub_ticks
 
     # start node
     node = rospy.init_node("cherokey")
     
-    # start publisher for sending data over rosserial to Arduino on Cherokey
-    pub_wheels = rospy.Publisher("wheels_set_state", WheelState, queue_size=10)
-    pub_freq = rospy.Publisher("pwm_freq_set", UInt16, queue_size=10)
+    # start publisher for sending data over rosserial to Arduino on Rover
+    pub_wheels = rospy.Publisher("/rover_ll/wheels_set_state", WheelState, queue_size=10)
+    pub_freq = rospy.Publisher("/rover_ll/pwm_freq_set", UInt16, queue_size=10)
+
+    # start subscriber to listen for ticks from low-level rover
+    sub_ticks = rospy.Subscriber('/rover_ll/ticks', Ticks, ticks_callback, queue_size=10)
+
+    # start publisher for sending Ticks on to OpenMower framework
+    pub_ticks = rospy.Publisher("/rover/ticks", Ticks, queue_size=10)
 
 
     # start cherokey 

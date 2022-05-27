@@ -17,7 +17,7 @@ if __name__ == '__main__':
     node = rospy.init_node("ck_joy_connect")
     
     # start publisher for sending data over rosserial to Arduino on Cherokey
-    pub_ck = rospy.Publisher("/cherokey/cmd_vel", Twist, queue_size=10)
+    pub_ck = rospy.Publisher("/rover/cmd_vel", Twist, queue_size=10)
 
     # create subscribers
     cmd_vel_subscription = rospy.Subscriber('/cmd_vel', Twist, cmd_vel_callback)

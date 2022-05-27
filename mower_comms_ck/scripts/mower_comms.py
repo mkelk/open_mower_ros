@@ -8,6 +8,7 @@ from std_msgs.msg import String
 from geometry_msgs.msg import Twist
 from mower_msgs.msg import Status, ImuRaw, ESCStatus
 from mower_msgs.srv import MowerControlSrv, MowerControlSrvResponse, EmergencyStopSrv, EmergencyStopSrvResponse, GPSControlSrv
+from cherokey_msgs.msg import Ticks
 
 import qwiic_icm20948
 
@@ -30,8 +31,7 @@ speed_mow = 0.0
 emergency_high_level = False
 status_pub = None
 imu_pub = None
-# cherokey_pub = None
-cherokey_pub_cmd_vel = None
+rover_pub_cmd_vel = None
 last_imu_ts = rospy.Time()
 last_cmd_vel = rospy.Time()
 cmd_vel = None
@@ -40,6 +40,7 @@ ll_status = {
   'left': None,
   'right': None,
 }
+ticks = Ticks(0,0)
 
 # xmodem = crcmod.predefined.mkPredefinedCrcFun('xmodem')
 MotorData = namedtuple('MotorData', [
@@ -109,19 +110,8 @@ def publishActuators():
     # really a math hack, did not have time..
     spin_cal_factor = 0.4
     spin = -(speed_l - speed_r) * spin_cal_factor
-     # rospy.loginfo(f"Publishing actuators {speed_l} {speed_r}")
-    # cherokey_pub.publish(f"{speed} {spin}")
-    cherokey_pub_cmd_vel.publish(cmd_vel)
+    rover_pub_cmd_vel.publish(cmd_vel)
     
-    # cherokey_pub.publish(f"0 0")
-    # try:
-    #     write_motor(comms_left, 0, -int(speed_l*1000))
-    # except Exception:
-    #     rospy.logerr("Error writing to left motor serial port", exc_info=True)
-    # try:
-    #     write_motor(comms_right, 0, int(speed_r*1000))
-    # except Exception:
-    #     rospy.logerr("Error writing to right motor serial port", exc_info=True)
 
 def publishStatus():
     # TODO: should this acquire a lock in mower_comms.cpp?
@@ -216,17 +206,21 @@ def velReceived(msg):
     elif speed_r <= -1.0:
         speed_r = -1.0
 
+def ticksReceived(ticks_in):
+    global ticks
+    ticks = ticks_in
+
 def handleLowLevelStatus():
     global ll_status
     left_data = right_data = None
     try:
         # left_data = read_motor(comms_left)
-        left_data = MotorData(0, 0, 0, True)
+        left_data = MotorData(ticks.ticksLeft, 0, 0, True)
     except IOError as e:
         rospy.logwarn("Failed to read left motor status: {}".format(e))
     try:
         # right_data = read_motor(comms_right)
-        right_data = MotorData(0, 0, 0, True)
+        right_data = MotorData(ticks.ticksRight, 0, 0, True)
     except IOError as e:
         rospy.logwarn("Failed to read right motor status: {}".format(e))
     with ll_status_mutex:
@@ -260,8 +254,7 @@ def main():
     global speed_l
     global speed_r
     global status_pub
-    global cherokey_pub
-    global cherokey_pub_cmd_vel
+    global rover_pub_cmd_vel
     global imu_pub
     global last_imu_ts
 
@@ -273,9 +266,10 @@ def main():
     imu_pub = rospy.Publisher('mower/imu', ImuRaw, queue_size=1)
     mow_service = rospy.Service("mower_service/mow_enabled", MowerControlSrv, setMowEnabled)
     emergency_service = rospy.Service("mower_service/emergency", EmergencyStopSrv, setEmergencyStop)
+    # TODO melk: what does tcp_nodelay=True do?
     cmd_vel_sub = rospy.Subscriber("cmd_vel",Twist, velReceived, tcp_nodelay=True)
-    # cherokey_pub = rospy.Publisher("cherokey/speedspin", String, queue_size=10)
-    cherokey_pub_cmd_vel = rospy.Publisher("cherokey/cmd_vel", Twist, queue_size=10)
+    rover_pub_cmd_vel = rospy.Publisher("/rover/cmd_vel", Twist, queue_size=10)
+    rover_ticks_sub = rospy.Subscriber("/rover/ticks", Ticks, ticksReceived)
 
     while IMU.connected == False:
         rospy.logwarn("ICM-20948 not connected")
