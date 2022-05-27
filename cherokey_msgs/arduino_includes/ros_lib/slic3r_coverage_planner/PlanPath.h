@@ -4,8 +4,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include "ros/msg.h"
-#include "nav_msgs/Path.h"
 #include "geometry_msgs/Polygon.h"
+#include "nav_msgs/Path.h"
 
 namespace slic3r_coverage_planner
 {

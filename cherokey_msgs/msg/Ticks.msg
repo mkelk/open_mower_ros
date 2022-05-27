@@ -1,2 +1,2 @@
-int16 ticksLeft
-int16 ticksRight
+uint16 ticksLeft
+uint16 ticksRight

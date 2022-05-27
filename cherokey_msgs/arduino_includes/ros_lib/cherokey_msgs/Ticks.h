@@ -12,9 +12,9 @@ namespace cherokey_msgs
   class Ticks : public ros::Msg
   {
     public:
-      typedef int16_t _ticksLeft_type;
+      typedef uint16_t _ticksLeft_type;
       _ticksLeft_type ticksLeft;
-      typedef int16_t _ticksRight_type;
+      typedef uint16_t _ticksRight_type;
       _ticksRight_type ticksRight;
 
     Ticks():
@@ -26,21 +26,11 @@ namespace cherokey_msgs
     virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
-      union {
-        int16_t real;
-        uint16_t base;
-      } u_ticksLeft;
-      u_ticksLeft.real = this->ticksLeft;
-      *(outbuffer + offset + 0) = (u_ticksLeft.base >> (8 * 0)) & 0xFF;
-      *(outbuffer + offset + 1) = (u_ticksLeft.base >> (8 * 1)) & 0xFF;
+      *(outbuffer + offset + 0) = (this->ticksLeft >> (8 * 0)) & 0xFF;
+      *(outbuffer + offset + 1) = (this->ticksLeft >> (8 * 1)) & 0xFF;
       offset += sizeof(this->ticksLeft);
-      union {
-        int16_t real;
-        uint16_t base;
-      } u_ticksRight;
-      u_ticksRight.real = this->ticksRight;
-      *(outbuffer + offset + 0) = (u_ticksRight.base >> (8 * 0)) & 0xFF;
-      *(outbuffer + offset + 1) = (u_ticksRight.base >> (8 * 1)) & 0xFF;
+      *(outbuffer + offset + 0) = (this->ticksRight >> (8 * 0)) & 0xFF;
+      *(outbuffer + offset + 1) = (this->ticksRight >> (8 * 1)) & 0xFF;
       offset += sizeof(this->ticksRight);
       return offset;
     }
@@ -48,29 +38,17 @@ namespace cherokey_msgs
     virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
-      union {
-        int16_t real;
-        uint16_t base;
-      } u_ticksLeft;
-      u_ticksLeft.base = 0;
-      u_ticksLeft.base |= ((uint16_t) (*(inbuffer + offset + 0))) << (8 * 0);
-      u_ticksLeft.base |= ((uint16_t) (*(inbuffer + offset + 1))) << (8 * 1);
-      this->ticksLeft = u_ticksLeft.real;
+      this->ticksLeft =  ((uint16_t) (*(inbuffer + offset)));
+      this->ticksLeft |= ((uint16_t) (*(inbuffer + offset + 1))) << (8 * 1);
       offset += sizeof(this->ticksLeft);
-      union {
-        int16_t real;
-        uint16_t base;
-      } u_ticksRight;
-      u_ticksRight.base = 0;
-      u_ticksRight.base |= ((uint16_t) (*(inbuffer + offset + 0))) << (8 * 0);
-      u_ticksRight.base |= ((uint16_t) (*(inbuffer + offset + 1))) << (8 * 1);
-      this->ticksRight = u_ticksRight.real;
+      this->ticksRight =  ((uint16_t) (*(inbuffer + offset)));
+      this->ticksRight |= ((uint16_t) (*(inbuffer + offset + 1))) << (8 * 1);
       offset += sizeof(this->ticksRight);
      return offset;
     }
 
     virtual const char * getType() override { return "cherokey_msgs/Ticks"; };
-    virtual const char * getMD5() override { return "c5d21d47a2e767cbaa216ebabe2683aa"; };
+    virtual const char * getMD5() override { return "1029027dd8f5b97b851a97557020f503"; };
 
   };
 
