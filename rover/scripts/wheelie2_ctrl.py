@@ -90,47 +90,23 @@ class Cherokey():
         # just testing
         self._set_motor_speeds()
 
-    def _command_callback(self, msg):
-        command = msg.data
-        if command == 'test':
-            rospy.loginfo("got test msg")
-        elif command == 'stop':
-            self.stop()
-        else:
-            print('Unknown command, stopping instead')
-            self.stop()
-
     def stop(self):
         self.speed = 0
         self.spin = 0
         self._set_motor_speeds()
-
-    def max_speed(self):
-        '''Speed in meters per second at maximum RPM'''
-        rpm = (self._left_max_rpm + self._right_max_rpm) / 2.0
-        mps = rpm * math.pi * self._wheel_diameter / 60.0
-        return mps
 
     def max_twist(self):
         '''Rotation in radians per second at maximum RPM'''
         return self.max_speed() / self._wheel_diameter
 
     def _cmd_vel_callback(self, msg):
+        rospy.logdebug(f"/rover/cmd_vel received: {msg}")
         self.speed = msg.linear.x
         # Note: Hand-adjusted calibration here...
         # very hard to turn the Cherokey
         self.spin = msg.angular.z / 3
-        self._set_motor_speeds()
         rospy.logdebug(f"spin set to: {self.spin}")
         rospy.logdebug(f"speed set to: {self.speed}")
-
-    def _cmd_speedspin(self, msg):
-        # TODO: use real ROS custom message for communicating speed
-        self.speed = float(msg.data.split()[0])
-        self.spin = float(msg.data.split()[1])
-        # rospy.loginfo(f"Got speedspin topic message {msg.data}")
-        # self.speed = 0.0
-        # self.spin = 0.0
         self._set_motor_speeds()
 
     def _set_motor_speeds(self):

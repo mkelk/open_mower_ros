@@ -170,6 +170,10 @@ def publishActuatorsTimerTask(*args, **kwargs):
 
 def setMowEnabled(req):
     global speed_mow
+    tst = 0
+    rospy.logdebug(f"mower_comms: setMowEnabled, req.mow_enabled: {req.mow_enabled}")
+    if req.mow_enabled and isEmergency():  
+        rospy.logdebug("mower_comms: isEmergency")
     if req.mow_enabled and not isEmergency():
         speed_mow = 1;
     else:
@@ -278,7 +282,7 @@ def main():
     last_imu_ts = rospy.Time.now()
     rospy.loginfo("mower_comms readying timer")
     publish_timer = rospy.timer.Timer(rospy.Duration(0.02), publishActuatorsTimerTask)
-    #publish_timer = rospy.timer.Timer(rospy.Duration(5.0), publishActuatorsTimerTask)
+    #publish_timer = rospy.timer.Timer(rospy.Duration(1.0), publishActuatorsTimerTask)
 
     rate = rospy.Rate(20.0)
     while not rospy.is_shutdown():

@@ -35,6 +35,7 @@ std::string MowingBehavior::state_name() {
 
 Behavior *MowingBehavior::execute() {
 
+    ROS_DEBUG("State: execute MowingBehavior");
     while (ros::ok() && !paused) {
         if (currentMowingPaths.empty() && !create_mowing_plan(currentAreaIndex)) {
             ROS_INFO_STREAM("Could not create mowing plan, docking");
@@ -63,7 +64,7 @@ Behavior *MowingBehavior::execute() {
 }
 
 void MowingBehavior::enter() {
-
+    ROS_DEBUG("State: enter MowingBehavior");
 }
 
 void MowingBehavior::exit() {

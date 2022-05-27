@@ -31,6 +31,7 @@ std::string IdleBehavior::state_name() {
 }
 
 Behavior *IdleBehavior::execute() {
+    ROS_DEBUG("State: execute IdleBehavior");
 
 
     ros::Rate r(1);
@@ -41,6 +42,7 @@ Behavior *IdleBehavior::execute() {
             (last_status.v_battery > config.battery_full_voltage && last_status.mow_esc_status.temperature_motor < 45.0 &&
              !last_config.manual_pause_mowing)) {
             mowingPaused = false;
+            ROS_DEBUG("State: going to UndockingBehavior");
             return &UndockingBehavior::INSTANCE;
         }
 
@@ -51,6 +53,7 @@ Behavior *IdleBehavior::execute() {
 }
 
 void IdleBehavior::enter() {
+    ROS_DEBUG("State: enter IdleBehavior");
     // disable it again so that we don't get stuck in a loop and drain the battery
     if (last_config.manual_start_mowing) {
         last_config.manual_start_mowing = false;
