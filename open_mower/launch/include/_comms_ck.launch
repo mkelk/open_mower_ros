@@ -4,6 +4,7 @@
 -->
 <launch>
     <!-- TODO: Add parameter for simulation -->
+    <arg name="rover_version"/>  <!-- for selecting which rover to use -->
 
     <node pkg="mower_comms_ck" type="mower_comms.py" name="mower_comms" output="screen" required="true">
         <param name="ll_serial_port" value="/dev/ttyAMA0"/>
@@ -20,7 +21,7 @@
         <arg name="ntrip_user" default="gps"/>
         <arg name="ntrip_password" default="gps"/>
     </include>
-    <include file="$(find rover)/launch/include/_rover.launch" />
-
-
+    <include file="$(find rover)/launch/include/_rover.launch" >
+        <arg name="rover_version" value="$(eval arg('rover_version'))" />
+    </include>
 </launch>
