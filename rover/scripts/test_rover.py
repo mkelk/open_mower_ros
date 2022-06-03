@@ -11,7 +11,6 @@ last_navrelposned_time = None
 last_navrelposned = None
 
 
-
 def sayProblem(msg):
     rospy.logwarn(f"**** problem ***** {msg}")
 
@@ -35,7 +34,8 @@ def ticks_callback(ticks):
     last_ticks_time = rospy.get_rostime() 
 
 def testTicks():
-    stdSay( (last_ticks_time == None or rospy.get_rostime() - last_ticks_time).to_sec() < 1.0, "Ticks coming in fine from /rover_ll/ticks", "Too long wait for ticks from /rover_ll/ticks")
+    mustbetrue = last_ticks_time != None and (rospy.get_rostime() - last_ticks_time).to_sec() < 1.0
+    stdSay(mustbetrue, "Ticks coming in fine from /rover_ll/ticks", "Too long wait for ticks from /rover_ll/ticks")
 
 def navrelposned_callback(navrelposned):
     global last_navrelposned_time
