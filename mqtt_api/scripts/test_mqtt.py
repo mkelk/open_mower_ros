@@ -70,8 +70,9 @@ def composeStatus():
         data['ui_board_available'] = last_status.ui_board_available
         data['ultrasonic_ranges'] = last_status.ultrasonic_ranges
         data['emergency'] = last_status.emergency
+        # TODO: Remove minutes when we have real data
         data['v_charge'] = last_status.v_charge
-        data['v_battery'] = last_status.v_battery
+        data['v_battery'] = last_status.v_battery + 1.0 / 10.0 * datetime.now().minute 
         data['charge_current'] = last_status.charge_current
     json_data = json.dumps(data, indent=2)
     print(json_data)
