@@ -5,6 +5,8 @@ import rospy
 import paho.mqtt.client as mqtt
 from mower_msgs.msg import Status
 
+import dynamic_reconfigure.client
+
 
 TST_STATUS = """ {
 	"state": "stopped again 9",
@@ -51,6 +53,10 @@ def composeEscStatus(escdata):
     data['tacho'] = escdata.tacho
     data['temperature_motor'] = escdata.temperature_motor
     data['temperature_pcb'] = escdata.temperature_pcb
+    return data
+
+def composeEscStatusJson(escdata):
+    data = composeEscStatus(escdata)
     json_data = json.dumps(data, indent=2)
     print(json_data)
     return json_data
@@ -74,9 +80,34 @@ def composeStatus():
         data['v_charge'] = last_status.v_charge
         data['v_battery'] = last_status.v_battery + 1.0 / 10.0 * datetime.now().minute 
         data['charge_current'] = last_status.charge_current
+    return data
+
+def composeStatusJson():
+    data = composeStatus()
     json_data = json.dumps(data, indent=2)
     print(json_data)
     return json_data
+
+#####################################################################3
+# Dynamic reconfigure mower_logic
+#####################################################################3
+def getConfig(nodename):
+    rcfg_client = dynamic_reconfigure.client.Client(nodename, timeout = 10)
+    parameters = rcfg_client.get_configuration()
+    return parameters
+
+def getConfigJson(nodename):
+    json_data = json.dumps(getConfig(nodename), indent=2)
+    print(json_data)
+    return json_data
+
+def setManualStartMowing():
+    nodename = "mower_logic"
+    config = getConfig(nodename)
+    config['manual_start_mowing'] = True
+    rcfg_client = dynamic_reconfigure.client.Client(nodename, timeout = 10)
+    rcfg_client.update_configuration(config)
+
 
 #####################################################################3
 # ROS subscriber callbacks
@@ -95,27 +126,34 @@ if __name__ == '__main__':
 
     # set up MQTT client
     broker_address="192.168.1.103" 
-    client = mqtt.Client("P1") #create new instance
-    client.username_pw_set("homeassistant", "EiX5kahy7ecai7iquah5deemoN2thu6eeCheehaetoox7au9ooN1eiRooShiewah")
-    client.on_log=on_log
-    client.on_message=on_message 
-    client.connect(broker_address, port=1883, keepalive=60) #connect to broker
+    mqtt_client = mqtt.Client("P1") #create new instance
+    mqtt_client.username_pw_set("homeassistant", "EiX5kahy7ecai7iquah5deemoN2thu6eeCheehaetoox7au9ooN1eiRooShiewah")
+    mqtt_client.on_log=on_log
+    mqtt_client.on_message=on_message 
+    mqtt_client.connect(broker_address, port=1883, keepalive=60) #connect to broker
 
-    # demo - TODO
-    # client.subscribe("/home/openmower/info")
+    # demo of MQTT subsctiption - TODO
+    # mqtt_client.subscribe("/home/openmower/info")
+    # demo of setting dynamic reconfigure parameter 
+    # setManualStartMowing()
 
-    client.loop_start() 
+    mqtt_client.loop_start() 
 
     while not rospy.is_shutdown():
-        client.publish("/home/openmower/info",payload=compose_tst_msg(), qos=1)
+        # publish mower status
+        mqtt_client.publish("/home/openmower/info",payload=compose_tst_msg(), qos=1)
         if not last_status == None:
-            client.publish("/home/openmower/mower_status", payload=composeStatus(), qos=0)
-            client.publish("/home/openmower/left_motor_status", payload=composeEscStatus(last_status.left_esc_status), qos=0)
-            client.publish("/home/openmower/right_motor_status", payload=composeEscStatus(last_status.right_esc_status), qos=0)
-            client.publish("/home/openmower/mow_motor_status", payload=composeEscStatus(last_status.mow_esc_status), qos=0)
+            mqtt_client.publish("/home/openmower/mower_status", payload=composeStatusJson(), qos=0)
+            mqtt_client.publish("/home/openmower/left_motor_status", payload=composeEscStatusJson(last_status.left_esc_status), qos=0)
+            mqtt_client.publish("/home/openmower/right_motor_status", payload=composeEscStatusJson(last_status.right_esc_status), qos=0)
+            mqtt_client.publish("/home/openmower/mow_motor_status", payload=composeEscStatusJson(last_status.mow_esc_status), qos=0)
+
+        # publish mower_logic dynamic config
+        mqtt_client.publish("/home/openmower/mower_logic_config", payload=getConfigJson("mower_logic"), qos=0)
+    
         rospy.sleep(1)
         rospy.loginfo("looping...")
 
-    client.loop_stop()    
+    mqtt_client.loop_stop()    
 
     
