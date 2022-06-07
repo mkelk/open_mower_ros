@@ -41,11 +41,24 @@ def on_log(client, userdata, level, buf):
     rospy.loginfo("log: ",buf)
 
 def on_message(client, userdata, message):
-    print("message received " ,str(message.payload.decode("utf-8")))
-    print("message topic=",message.topic)
-    print("message qos=",message.qos)
-    print("message retain flag=",message.retain)
-
+    # print("message received " ,str(message.payload.decode("utf-8")))
+    # print("message topic=",message.topic)
+    # print("message qos=",message.qos)
+    # print("message retain flag=",message.retain)
+    if message.topic == "/home/openmower/mower_logic_config_set":
+        messageContentJsonString = str(message.payload.decode("utf-8"))
+        messageContentDict = json.loads(messageContentJsonString)
+        currentConfig = getConfig("mower_logic")
+        for key in messageContentDict.keys():
+            if key in currentConfig.keys():
+                # print(f"setting {key} to {messageContentDict[key]}")
+                currentConfig[key] = messageContentDict[key]
+            else:
+                rospy.logwarn(f"Trying to set non-existing {key} in mower_logic config")
+        # print("Updating...")
+        rcfg_client = dynamic_reconfigure.client.Client("mower_logic", timeout = 10)
+        rcfg_client.update_configuration(currentConfig)            
+        
 def composeEscStatus(escdata):
     data = {}
     data['status'] = escdata.status
@@ -58,7 +71,7 @@ def composeEscStatus(escdata):
 def composeEscStatusJson(escdata):
     data = composeEscStatus(escdata)
     json_data = json.dumps(data, indent=2)
-    print(json_data)
+    # print(json_data)
     return json_data
 
 def composeStatus():
@@ -85,7 +98,7 @@ def composeStatus():
 def composeStatusJson():
     data = composeStatus()
     json_data = json.dumps(data, indent=2)
-    print(json_data)
+    # print(json_data)
     return json_data
 
 #####################################################################3
@@ -98,15 +111,8 @@ def getConfig(nodename):
 
 def getConfigJson(nodename):
     json_data = json.dumps(getConfig(nodename), indent=2)
-    print(json_data)
+    # print(json_data)
     return json_data
-
-def setManualStartMowing():
-    nodename = "mower_logic"
-    config = getConfig(nodename)
-    config['manual_start_mowing'] = True
-    rcfg_client = dynamic_reconfigure.client.Client(nodename, timeout = 10)
-    rcfg_client.update_configuration(config)
 
 
 #####################################################################3
@@ -132,10 +138,8 @@ if __name__ == '__main__':
     mqtt_client.on_message=on_message 
     mqtt_client.connect(broker_address, port=1883, keepalive=60) #connect to broker
 
-    # demo of MQTT subsctiption - TODO
-    # mqtt_client.subscribe("/home/openmower/info")
-    # demo of setting dynamic reconfigure parameter 
-    # setManualStartMowing()
+    # MQTT subscriptions
+    mqtt_client.subscribe("/home/openmower/mower_logic_config_set")
 
     mqtt_client.loop_start() 
 
