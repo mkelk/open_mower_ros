@@ -5,7 +5,15 @@
     <arg name="rover_version" />  <!-- for selecting which rover to use -->
 
     <group if="$(eval arg('rover_version') == 'wheelie2')">
-        <include file="$(find rover)/launch/include/_rosserial.launch"/>
+        <include file="$(find rover)/launch/include/_rosserial.launch">
+            <arg name="rover_version" value="$(eval arg('rover_version'))"/>
+        </include>
         <node name="rover" pkg="rover" type="wheelie2_ctrl.py" required="true" output="screen"/>
+    </group>    
+    <group if="$(eval arg('rover_version') == 'mowgli')">
+        <include file="$(find rover)/launch/include/_rosserial.launch">
+            <arg name="rover_version" value="$(eval arg('rover_version'))"/>
+        </include>
+        <node name="rover" pkg="rover" type="mowgli_ctrl.py" required="true" output="screen"/>
     </group>    
 </launch>
