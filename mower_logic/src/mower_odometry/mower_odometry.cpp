@@ -61,7 +61,9 @@ geometry_msgs::Quaternion orientation_result;
 #define WHEEL_DIAMETER 0.19
 
 // (ticks / revolution) / (m / revolution)
-#define TICKS_PER_M (993.0 / (0.19*M_PI))
+#define TICKS_PER_REV 160 // Mowgli value from @ow, https://discord.com/channels/958476543846412329/970377157945733121/984898691720695908
+#define TICKS_PER_M (TICKS_PER_REV / (WHEEL_DIAMETER*M_PI))
+
 
 
 tf2_ros::Buffer tfBuffer;
