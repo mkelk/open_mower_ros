@@ -173,7 +173,7 @@ void gpsPositionReceived(const ublox_msgs::NavRELPOSNED9::ConstPtr &msg) {
     bool refPosMiss = (msg->flags & 0b0000100) >> 6;
     bool refObsMiss = (msg->flags & 0b0000100) >> 7;
 
-    ROS_INFO_STREAM_THROTTLE(1,"GPS data:\r\nFlags:\r\n" <<
+    ROS_DEBUG_STREAM_THROTTLE(1,"GPS data:\r\nFlags:\r\n" <<
                                                                         "accuracy:" << gps_accuracy_m << "\r\n" <<
                                                                         "gnssFixOK:" << gnssFixOK << "\r\n" <<
                                                                         "diffSoln:" << diffSoln << "\r\n" <<
@@ -184,26 +184,23 @@ void gpsPositionReceived(const ublox_msgs::NavRELPOSNED9::ConstPtr &msg) {
     );
 
 
-    // melk: TODO loosen condition on carrSoln
-    // if (!gnssFixOK || !diffSoln || !relPosValid || carrSoln != 2) {
-    //     ROS_INFO_STREAM_THROTTLE(1,"Dropped at least one GPS update due to flags.\r\nFlags:\r\n" <<
-    //                                                                       "accuracy:" << gps_accuracy_m << "\r\n" <<
-    //                                                                       "gnssFixOK:" << gnssFixOK << "\r\n" <<
-    //                                                                       "diffSoln:" << diffSoln << "\r\n" <<
-    //                                                                       "relPosValid:" << relPosValid << "\r\n" <<
-    //                                                                       "carrSoln:" << (int) carrSoln << "\r\n" <<
-    //                                                                       "refPosMiss:" << refPosMiss << "\r\n" <<
-    //                                                                       "refObsMiss:" << refObsMiss << "\r\n"
-    //     );
-    //     return;
-    // }
+    if (!gnssFixOK || !diffSoln || !relPosValid || carrSoln != 2) {
+        ROS_INFO_STREAM_THROTTLE(1,"Dropped at least one GPS update due to flags.\r\nFlags:\r\n" <<
+                                                                          "accuracy:" << gps_accuracy_m << "\r\n" <<
+                                                                          "gnssFixOK:" << gnssFixOK << "\r\n" <<
+                                                                          "diffSoln:" << diffSoln << "\r\n" <<
+                                                                          "relPosValid:" << relPosValid << "\r\n" <<
+                                                                          "carrSoln:" << (int) carrSoln << "\r\n" <<
+                                                                          "refPosMiss:" << refPosMiss << "\r\n" <<
+                                                                          "refObsMiss:" << refObsMiss << "\r\n"
+        );
+        return;
+    }
 
-    // melk: TODO: increased for testing
-    // if (gps_accuracy_m > 0.05) {
-    // if (gps_accuracy_m > 0.20) {
-    //     ROS_INFO_STREAM("dropping gps with accuracy: " << gps_accuracy_m << "m");
-    //     return;
-    // }
+    if (gps_accuracy_m > 0.05) {
+        ROS_INFO_STREAM("dropping gps with accuracy: " << gps_accuracy_m << "m");
+        return;
+    }
 
     ROS_DEBUG("melk: Testing: is GPS enabled");
     if (!gpsEnabled) {
