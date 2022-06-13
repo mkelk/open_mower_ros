@@ -16,8 +16,10 @@
 //
 #include <dynamic_reconfigure/server.h>
 #include "IdleBehavior.h"
+#include "AreaRecordingBehavior.h"
 
 extern void stop();
+extern void setEmergencyMode(bool emergency);
 
 extern mower_msgs::Status last_status;
 extern bool mowingPaused;
@@ -34,16 +36,20 @@ Behavior *IdleBehavior::execute() {
     ROS_INFO("State: execute IdleBehavior");
 
 
-    ros::Rate r(1);
+    ros::Rate r(25);
     while (ros::ok()) {
         stop();
 
-        if (last_config.manual_start_mowing &&
-            (last_status.v_battery > config.battery_full_voltage && last_status.mow_esc_status.temperature_motor < 45.0 &&
+        if (manual_start_mowing ||
+            (last_status.v_battery > last_config.battery_full_voltage && last_status.mow_esc_status.temperature_motor < last_config.motor_cold_temperature &&
              !last_config.manual_pause_mowing)) {
             mowingPaused = false;
             ROS_DEBUG("State: going to UndockingBehavior");
             return &UndockingBehavior::INSTANCE;
+        }
+
+        if(start_area_recorder) {
+            return &AreaRecordingBehavior::INSTANCE;
         }
 
         r.sleep();
@@ -53,20 +59,15 @@ Behavior *IdleBehavior::execute() {
 }
 
 void IdleBehavior::enter() {
-    ROS_DEBUG("State: enter IdleBehavior");
-    // disable it again so that we don't get stuck in a loop and drain the battery
-    if (last_config.manual_start_mowing) {
-        last_config.manual_start_mowing = false;
-        reconfigServer->updateConfig(last_config);
-    }
+    start_area_recorder = false;
+    // Reset the docking behavior, to allow docking
+    DockingBehavior::INSTANCE.reset();
+
+    // disable it, so that we don't start mowing immediately
+    manual_start_mowing = false;
 }
 
 void IdleBehavior::exit() {
-    // disable it again so that we don't get stuck in a loop and drain the battery
-    if (last_config.manual_start_mowing) {
-        last_config.manual_start_mowing = false;
-        reconfigServer->updateConfig(last_config);
-    }
 }
 
 void IdleBehavior::reset() {
@@ -80,3 +81,24 @@ bool IdleBehavior::needs_gps() {
 bool IdleBehavior::mower_enabled() {
     return false;
 }
+
+void IdleBehavior::command_home() {
+    // We're already idle, don't do anything
+}
+
+void IdleBehavior::command_start() {
+    manual_start_mowing = true;
+}
+
+void IdleBehavior::command_s1() {
+    start_area_recorder = true;
+}
+
+void IdleBehavior::command_s2() {
+
+}
+
+bool IdleBehavior::redirect_joystick() {
+    return false;
+}
+

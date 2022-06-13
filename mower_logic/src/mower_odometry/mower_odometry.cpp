@@ -18,7 +18,7 @@
 #include "ros/ros.h"
 
 #include <mower_msgs/Status.h>
-#include <mower_msgs/ImuRaw.h>
+#include <sensor_msgs/Imu.h>
 #include <nav_msgs/Odometry.h>
 #include <ublox_msgs/NavRELPOSNED9.h>
 #include <tf2_ros/transform_broadcaster.h>
@@ -28,22 +28,30 @@
 #include "mower_logic/MowerOdometryConfig.h"
 #include <dynamic_reconfigure/server.h>
 #include "mower_msgs/GPSControlSrv.h"
+#include "robot_localization/navsat_conversions.h"
+#include "sensor_msgs/NavSatFix.h"
 
 
 ros::Publisher odometry_pub;
 
-ublox_msgs::NavRELPOSNED9 last_gps;
+// Datum coordinates as reference if using lat long coordinates.
+double datumN, datumE, datumLat, datumLng;
+std::string datumZone;
 
-mower_msgs::ImuRaw lastImu;
-mower_logic::MowerOdometryConfig config;
-
+tf2::Vector3 last_gps_pos;
+double last_gps_acc_m;
+ros::Time last_gps_odometry_time(0.0);
 int gps_outlier_count = 0;
 int valid_gps_samples = 0;
+bool gpsOdometryValid = false;
+bool gpsEnabled = true;
+
+
+sensor_msgs::Imu lastImu;
+mower_logic::MowerOdometryConfig config;
+
 
 bool hasImuMessage = false;
-bool gpsOdometryValid = false;
-ros::Time last_gps_odometry_time(0.0);
-bool gpsEnabled = true;
 
 // Odometry
 bool firstData = true;
@@ -56,9 +64,6 @@ double d_wheel_r, d_wheel_l, dt = 1.0;
 double x = 0, y = 0, vx = 0.0, r = 0.0, vy = 0.0, vr = 0.0;
 geometry_msgs::Quaternion orientation_result;
 
-
-#define WHEEL_DISTANCE_M 0.325
-#define WHEEL_DIAMETER 0.19
 
 // (ticks / revolution) / (m / revolution)
 #define TICKS_PER_REV 160 // Mowgli value from @ow, https://discord.com/channels/958476543846412329/970377157945733121/984898691720695908
@@ -131,8 +136,8 @@ void publishOdometry() {
     };
 
     if (gpsOdometryValid && gpsEnabled && ros::Time::now() - last_gps_odometry_time < ros::Duration(5.0)) {
-        odom.pose.covariance[0] = last_gps.accLength / 10000.0;
-        odom.pose.covariance[7] = last_gps.accLength / 10000.0;
+        odom.pose.covariance[0] = last_gps_acc_m * last_gps_acc_m;
+        odom.pose.covariance[7] = last_gps_acc_m * last_gps_acc_m;
     }
 
     odom.twist.covariance = {
@@ -151,13 +156,106 @@ void publishOdometry() {
     odometry_pub.publish(odom);
 }
 
-void imuReceived(const mower_msgs::ImuRaw::ConstPtr &msg) {
+void imuReceived(const sensor_msgs::Imu::ConstPtr &msg) {
     lastImu = *msg;
     hasImuMessage = true;
 }
 
 
-void gpsPositionReceived(const ublox_msgs::NavRELPOSNED9::ConstPtr &msg) {
+void handleGPSUpdate(tf2::Vector3 gps_pos, double gps_accuracy_m) {
+
+
+    if (gps_accuracy_m > 0.05) {
+        ROS_INFO_STREAM("dropping gps with accuracy: " << gps_accuracy_m << "m");
+        return;
+    }
+
+    double time_since_last_gps = (ros::Time::now() - last_gps_odometry_time).toSec();
+    if (time_since_last_gps > 5.0) {
+        ROS_WARN_STREAM("Last GPS was " << time_since_last_gps << " seconds ago.");
+        gpsOdometryValid = false;
+        valid_gps_samples = 0;
+        gps_outlier_count = 0;
+        last_gps_pos = gps_pos;
+        last_gps_acc_m = gps_accuracy_m;
+        last_gps_odometry_time = ros::Time::now();
+        return;
+    }
+
+
+
+//    ROS_INFO_STREAM("GOT GPS: " << gps_pos.x() << ", " << gps_pos.y());
+
+
+    double distance_to_last_gps = (last_gps_pos - gps_pos).length();
+
+    if (distance_to_last_gps < 5.0) {
+        // inlier, we treat it normally
+
+        // calculate current base_link position from orientation and distance parameter
+
+        double base_link_x = gps_pos.x() - config.gps_antenna_offset * cos(r);
+        double base_link_y = gps_pos.y() - config.gps_antenna_offset * sin(r);
+
+
+        // store the gps as last
+        last_gps_pos = gps_pos;
+        last_gps_acc_m = gps_accuracy_m;
+        last_gps_odometry_time = ros::Time::now();
+
+        gps_outlier_count = 0;
+        valid_gps_samples++;
+        if (!gpsOdometryValid && valid_gps_samples > 10) {
+            ROS_INFO_STREAM("GPS data now valid");
+            ROS_INFO_STREAM("First GPS data, moving odometry to " << base_link_x << ", " << base_link_y);
+            // we don't even have gps yet, set odometry to first estimate
+            x = base_link_x;
+            y = base_link_y;
+            gpsOdometryValid = true;
+        } else if (gpsOdometryValid) {
+            // gps was valid before, we apply the filter
+            x = x * (1.0 - config.gps_filter_factor) + config.gps_filter_factor * base_link_x;
+            y = y * (1.0 - config.gps_filter_factor) + config.gps_filter_factor * base_link_y;
+        }
+    } else {
+        ROS_WARN_STREAM("GPS outlier found. Distance was: " << distance_to_last_gps);
+        gps_outlier_count++;
+        // ~10 sec
+        if (gps_outlier_count > 10) {
+            ROS_ERROR_STREAM("too many outliers, assuming that the current gps value is valid.");
+            last_gps_pos = gps_pos;
+            last_gps_acc_m = gps_accuracy_m;
+            last_gps_odometry_time = ros::Time::now();
+
+            gpsOdometryValid = false;
+            valid_gps_samples = 0;
+            gps_outlier_count = 0;
+        }
+    }
+}
+
+
+void gpsPositionReceivedFix(const sensor_msgs::NavSatFix::ConstPtr &msg) {
+    double n,e;
+    std::string zone;
+    RobotLocalization::NavsatConversions::LLtoUTM(msg->latitude, msg->longitude, n,e,zone);
+
+    tf2::Vector3 gps_pos(
+            (e-datumE), (n-datumN), 0.0
+    );
+
+
+    if(msg->position_covariance_type == 0) {
+        ROS_INFO_STREAM_THROTTLE(1, "Dropped GPS Update to position_covariance_type being UNKNOWN");
+        return;
+    }
+
+    double acc_m = sqrt(msg->position_covariance[0]);
+
+    handleGPSUpdate(gps_pos, acc_m);
+}
+
+void gpsPositionReceivedRelPosNED(const ublox_msgs::NavRELPOSNED9::ConstPtr &msg) {
     ublox_msgs::NavRELPOSNED9 gps = *msg;
     double gps_accuracy_m = (double) gps.accLength / 10000.0f;
 
@@ -181,10 +279,6 @@ void gpsPositionReceived(const ublox_msgs::NavRELPOSNED9::ConstPtr &msg) {
         return;
     }
 
-    if (gps_accuracy_m > 0.05) {
-        ROS_INFO_STREAM("dropping gps with accuracy: " << gps_accuracy_m << "m");
-        return;
-    }
 
     if (!gpsEnabled) {
         gpsOdometryValid = false;
@@ -192,71 +286,11 @@ void gpsPositionReceived(const ublox_msgs::NavRELPOSNED9::ConstPtr &msg) {
         return;
     }
 
-    double time_since_last_gps = (ros::Time::now() - last_gps_odometry_time).toSec();
-    if (time_since_last_gps > 5.0) {
-        ROS_WARN_STREAM("Last GPS was " << time_since_last_gps << " seconds ago.");
-        gpsOdometryValid = false;
-        valid_gps_samples = 0;
-        gps_outlier_count = 0;
-        last_gps = gps;
-        last_gps_odometry_time = ros::Time::now();
-        return;
-    }
-
-
-    tf2::Vector3 last_gps_pos(
-            getGPSX(last_gps), getGPSY(last_gps), getGPSZ(last_gps)
-    );
     tf2::Vector3 gps_pos(
             getGPSX(gps), getGPSY(gps), getGPSZ(gps)
     );
 
-//    ROS_INFO_STREAM("GOT GPS: " << gps_pos.x() << ", " << gps_pos.y());
-
-
-    double distance_to_last_gps = (last_gps_pos - gps_pos).length();
-
-    if (distance_to_last_gps < 5.0) {
-        // inlier, we treat it normally
-
-        // calculate current base_link position from orientation and distance parameter
-
-        double base_link_x = gps_pos.x() - config.gps_antenna_offset * cos(r);
-        double base_link_y = gps_pos.y() - config.gps_antenna_offset * sin(r);
-
-
-        // store the gps as last
-        last_gps = gps;
-        last_gps_odometry_time = ros::Time::now();
-
-        gps_outlier_count = 0;
-        valid_gps_samples++;
-        if (!gpsOdometryValid && valid_gps_samples > 10) {
-            ROS_INFO_STREAM("GPS data now valid");
-            ROS_INFO_STREAM("First GPS data, moving odometry to " << x << ", " << y);
-            // we don't even have gps yet, set odometry to first estimate
-            x = base_link_x;
-            y = base_link_y;
-            gpsOdometryValid = true;
-        } else if (gpsOdometryValid) {
-            // gps was valid before, we apply the filter
-            x = x * (1.0 - config.gps_filter_factor) + config.gps_filter_factor * base_link_x;
-            y = y * (1.0 - config.gps_filter_factor) + config.gps_filter_factor * base_link_y;
-        }
-    } else {
-        ROS_WARN_STREAM("GPS outlier found. Distance was: " << distance_to_last_gps);
-        gps_outlier_count++;
-        // ~10 sec
-        if (gps_outlier_count > 10) {
-            ROS_ERROR_STREAM("too many outliers, assuming that the current gps value is valid.");
-            last_gps = gps;
-            last_gps_odometry_time = ros::Time::now();
-
-            gpsOdometryValid = false;
-            valid_gps_samples = 0;
-            gps_outlier_count = 0;
-        }
-    }
+    handleGPSUpdate(gps_pos, gps_accuracy_m);
 }
 
 
@@ -269,28 +303,14 @@ bool statusReceivedOrientation(const mower_msgs::Status::ConstPtr &msg) {
 
 
 
-
-//    geometry_msgs::TransformStamped imu_to_base_link = tfBuffer.lookupTransform(lastImu.header.frame_id, "base_link",
-//                                                                                lastImu.header.stamp);
-
+    tf2::Quaternion q;
+    tf2::fromMsg(lastImu.orientation, q);
 
 
+    tf2::Matrix3x3 m(q);
+    double unused1, unused2, yaw;
 
-    double r_gyro = r - lastImu.gz * dt;
-    while (r_gyro < 0) {
-        r_gyro += 2.0 * M_PI;
-    }
-    r_gyro = fmod(r_gyro, 2.0 * M_PI);
-    tf2::Quaternion q_gyro(0.0, 0.0, r_gyro);
-
-
-
-//    geometry_msgs::Quaternion base_link_pose;
-//    tf2::doTransform(imu_pose, base_link_pose, imu_to_base_link);
-
-
-    double yaw = atan2(lastImu.my - (config.magnetic_offset_y),
-                       lastImu.mx - (config.magnetic_offset_x));
+    m.getRPY(unused1, unused2, yaw);
 
     yaw += config.imu_offset * (M_PI / 180.0);
     yaw = fmod(yaw + (M_PI_2), 2.0 * M_PI);
@@ -302,25 +322,14 @@ bool statusReceivedOrientation(const mower_msgs::Status::ConstPtr &msg) {
     tf2::Quaternion q_mag(0.0, 0.0, yaw);
 
 
-//    r = yaw;
-//    dr = lastImu.angular_velocity.z;
-
+    r = yaw;
 
     double d_ticks = (d_wheel_l + d_wheel_r) / 2.0;
 
-//    dr = yaw - r;
-//    dr = fmod(dr, 2.0 * M_PI);
 
 
-
-    tf2::Quaternion q = q_gyro.slerp(q_mag, config.magnetic_filter_factor);
-    orientation_result = tf2::toMsg(q);
-
-
-    tf2::Matrix3x3 m(q);
-    double unused1, unused2;
-
-    m.getRPY(unused1, unused2, r);
+    orientation_result = tf2::toMsg(q_mag);
+    //orientation_result = q_mag;
 
 
     x += d_ticks * cos(r);
@@ -328,7 +337,7 @@ bool statusReceivedOrientation(const mower_msgs::Status::ConstPtr &msg) {
 
     vy = 0;
     vx = d_ticks / dt;
-    vr = lastImu.gz;
+    vr = lastImu.angular_velocity.z;
 
 
     return true;
@@ -349,8 +358,8 @@ void statusReceived(const mower_msgs::Status::ConstPtr &msg) {
     dt = (msg->stamp - last_status.stamp).toSec();
 
 
-    d_wheel_l = -(int32_t) (msg->left_esc_status.tacho - last_status.left_esc_status.tacho) / TICKS_PER_M;
-    d_wheel_r = (int32_t) (msg->right_esc_status.tacho - last_status.right_esc_status.tacho) / TICKS_PER_M;
+    d_wheel_l = (int32_t) (msg->left_esc_status.tacho - last_status.left_esc_status.tacho) / TICKS_PER_M;
+    d_wheel_r = -(int32_t) (msg->right_esc_status.tacho - last_status.right_esc_status.tacho) / TICKS_PER_M;
 
 
 //    ROS_INFO_STREAM("d_wheel_l = " << d_wheel_l << ", d_wheel_r = " << d_wheel_r);
@@ -399,8 +408,30 @@ int main(int argc, char **argv) {
     gpsOdometryValid = false;
 
     ros::Subscriber status_sub = n.subscribe("mower/status", 100, statusReceived);
-    ros::Subscriber imu_sub = n.subscribe("mower/imu", 100, imuReceived);
-    ros::Subscriber gps_sub = n.subscribe("ublox/navrelposned", 100, gpsPositionReceived);
+    ros::Subscriber imu_sub = n.subscribe("imu/data", 100, imuReceived);
+
+    bool use_relative_position;
+    paramNh.param("use_relative_position", use_relative_position, true);
+
+    ros::Subscriber gps_sub;
+    if(use_relative_position) {
+        ROS_INFO("Odometry is using relative positioning.");
+        gps_sub = n.subscribe("ublox/navrelposned", 100, gpsPositionReceivedRelPosNED);
+    } else {
+        bool gotLatLng = true;
+        gotLatLng &= paramNh.getParam("datum_lat", datumLat);
+        gotLatLng &= paramNh.getParam("datum_long", datumLng);
+
+        if(!gotLatLng) {
+            ROS_ERROR_STREAM("Error during odometry init: You need to provide a reference point if using lat/lng coordinates for positioning! Set datum_lat and datum_long");
+            return 1;
+        }
+
+        RobotLocalization::NavsatConversions::LLtoUTM(datumLat, datumLng, datumN,datumE,datumZone);
+
+        ROS_INFO_STREAM("Odometry is using LAT/LNG positioning. Datum coordinates are: " << datumLat<< ", " << datumLng);
+        gps_sub = n.subscribe("ublox/fix", 100, gpsPositionReceivedFix);
+    }
 
     ros::spin();
     return 0;

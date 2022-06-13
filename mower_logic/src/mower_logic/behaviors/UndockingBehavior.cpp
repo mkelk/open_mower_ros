@@ -24,7 +24,8 @@ extern void stop();
 
 extern bool setGPS(bool enabled);
 
-UndockingBehavior UndockingBehavior::INSTANCE;
+UndockingBehavior UndockingBehavior::INSTANCE(&MowingBehavior::INSTANCE);
+UndockingBehavior UndockingBehavior::RETRY_INSTANCE(&DockingBehavior::INSTANCE);
 
 std::string UndockingBehavior::state_name() {
     return "UNDOCKING";
@@ -85,7 +86,7 @@ Behavior *UndockingBehavior::execute() {
     }
 
     // TODO return mow area
-    return &MowingBehavior::INSTANCE;
+    return nextBehavior;
 
 }
 
@@ -144,4 +145,28 @@ bool UndockingBehavior::waitForGPS() {
     gpsRequired = true;
 
     return true;
+}
+
+UndockingBehavior::UndockingBehavior(Behavior* next) {
+    this->nextBehavior = next;
+}
+
+void UndockingBehavior::command_home() {
+
+}
+
+void UndockingBehavior::command_start() {
+
+}
+
+void UndockingBehavior::command_s1() {
+
+}
+
+void UndockingBehavior::command_s2() {
+
+}
+
+bool UndockingBehavior::redirect_joystick() {
+    return false;
 }

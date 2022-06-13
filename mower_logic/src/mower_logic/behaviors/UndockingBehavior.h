@@ -32,7 +32,11 @@
 class UndockingBehavior : public Behavior {
 public:
     static UndockingBehavior INSTANCE;
+    static UndockingBehavior RETRY_INSTANCE;
+
+    UndockingBehavior(Behavior* nextBehavior);
 private:
+    Behavior* nextBehavior;
     geometry_msgs::PoseStamped docking_pose_stamped;
     bool gpsRequired;
 
@@ -54,6 +58,15 @@ public:
 
     bool mower_enabled() override;
 
+    void command_home() override;
+
+    void command_start() override;
+
+    void command_s1() override;
+
+    void command_s2() override;
+
+    bool redirect_joystick() override;
 };
 
 
