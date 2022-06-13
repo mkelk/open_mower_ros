@@ -32,6 +32,7 @@ std::string UndockingBehavior::state_name() {
 }
 
 Behavior *UndockingBehavior::execute() {
+    ROS_INFO("State: execute UndockingBehavior");
 
     // get robot's current pose from odometry.
     nav_msgs::Odometry odom = last_odom;
@@ -75,7 +76,7 @@ Behavior *UndockingBehavior::execute() {
         return nullptr;
     }
 
-
+    ROS_DEBUG("State: UndockingBehavior succeeded");
     ROS_INFO_STREAM("Undock success. Waiting for GPS.");
     bool hasGps = waitForGPS();
 
@@ -90,6 +91,7 @@ Behavior *UndockingBehavior::execute() {
 }
 
 void UndockingBehavior::enter() {
+    ROS_DEBUG("State: entered UndockingBehavior");
     reset();
 
     // Get the docking pose in map
@@ -118,6 +120,7 @@ bool UndockingBehavior::mower_enabled() {
 }
 
 bool UndockingBehavior::waitForGPS() {
+    ROS_DEBUG("State: waiting for GPS in UndockingBehavior");
     gpsRequired = false;
     setGPS(true);
     ros::Rate odom_rate(1.0);

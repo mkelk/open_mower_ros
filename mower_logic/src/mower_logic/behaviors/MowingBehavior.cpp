@@ -40,9 +40,13 @@ std::string MowingBehavior::state_name() {
 
 Behavior *MowingBehavior::execute() {
 
+    ROS_INFO("State: execute MowingBehavior");
+    ROS_DEBUG_STREAM("State: ros::ok: " << ros::ok());
+    ROS_DEBUG_STREAM("State: paused: " << paused);
     while (ros::ok() && !paused) {
         if (currentMowingPaths.empty() && !create_mowing_plan(last_config.current_area)) {
             ROS_INFO_STREAM("Could not create mowing plan, docking");
+            ROS_DEBUG("State: Could not create mowing plan, docking");
             // Start again from first area next time.
             reset();
             // We cannot create a plan, so we're probably done. Go to docking station
@@ -51,17 +55,22 @@ Behavior *MowingBehavior::execute() {
 
         // We have a plan, execute it
         ROS_INFO("Executing mowing plan");
+        ROS_DEBUG("State: Got a mowing plan, going to execute it");
         bool finished = execute_mowing_plan();
+        ROS_DEBUG("State: Done executing mowing plan");
 
         if (finished) {
+            ROS_DEBUG("State: skip to next area if current");
             // skip to next area if current
             last_config.current_area++;
             reconfigServer->updateConfig(last_config);
         }
     }
+    ROS_DEBUG("State: After while loop in MowingBehavior::execute");
 
     if (!ros::ok()) {
         // something went wrong
+        ROS_DEBUG("State: Something went wrong in executing MowingBehavior");
         return nullptr;
     }
     // we got paused, go to docking station
@@ -143,9 +152,12 @@ bool MowingBehavior::create_mowing_plan(int area_index) {
 
 bool MowingBehavior::execute_mowing_plan() {
 
+    ROS_DEBUG_STREAM("State: In mowing plan execution");
+
     // loop through all mowingPaths to execute the plan fully.
     while (!currentMowingPaths.empty() && ros::ok() && !paused) {
         ROS_INFO_STREAM("Moving to path segment starting point");
+        ROS_DEBUG_STREAM("State: Moving to path segment starting point");
         // enable mower
         mowerEnabled = true;
 
@@ -170,6 +182,7 @@ bool MowingBehavior::execute_mowing_plan() {
             if (result.state_ != result.SUCCEEDED) {
                 // We cannot reach the start point, drop the current path segment
                 ROS_ERROR_STREAM("Could not reach goal, quitting. status was: " << result.state_);
+                ROS_DEBUG_STREAM("State: Could not reach goal, quitting.");
 
                 currentMowingPaths.erase(currentMowingPaths.begin());
                 continue;
@@ -178,8 +191,10 @@ bool MowingBehavior::execute_mowing_plan() {
             mower_map::ClearNavPointSrv clear_nav_point_srv;
             clearNavPointClient.call(clear_nav_point_srv);
         }
+        ROS_DEBUG_STREAM("State: Driven to first point of the path segment");
 
         ROS_INFO_STREAM("Executing path segment");
+        ROS_DEBUG_STREAM("State: Executing path segment");
 
 
         // Execute the path segment and either drop it if we finished it successfully or trim it if we were paused
@@ -234,6 +249,7 @@ bool MowingBehavior::execute_mowing_plan() {
                currentIndex = progressSrv.response.index;
             } else {
                 ROS_ERROR("Error getting progress from FTC planner");
+                ROS_DEBUG("State: Error getting progress from FTC planner");
             }
 
             // if we have fully processed the segment or we have encountered an error, drop the path segment
@@ -245,6 +261,7 @@ bool MowingBehavior::execute_mowing_plan() {
                 }
                  */
                 ROS_INFO_STREAM("Path segment finished, skipping to next.");
+                ROS_DEBUG("State: Path segment finished, skipping to next.");
                 currentMowingPaths.erase(currentMowingPaths.begin());
 
                 // continue with next segment
@@ -265,6 +282,7 @@ bool MowingBehavior::execute_mowing_plan() {
     mowerEnabled = false;
 
     // true, if we have executed all paths
+    ROS_DEBUG_STREAM("State: we have executed all paths");
     return currentMowingPaths.empty();
 }
 

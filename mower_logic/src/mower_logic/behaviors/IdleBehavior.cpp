@@ -33,6 +33,7 @@ std::string IdleBehavior::state_name() {
 }
 
 Behavior *IdleBehavior::execute() {
+    ROS_INFO("State: execute IdleBehavior");
 
 
     ros::Rate r(25);
@@ -43,6 +44,7 @@ Behavior *IdleBehavior::execute() {
             (last_status.v_battery > last_config.battery_full_voltage && last_status.mow_esc_status.temperature_motor < last_config.motor_cold_temperature &&
              !last_config.manual_pause_mowing)) {
             mowingPaused = false;
+            ROS_DEBUG("State: going to UndockingBehavior");
             return &UndockingBehavior::INSTANCE;
         }
 

@@ -259,7 +259,7 @@ bool AreaRecordingBehavior::recordNewPolygon(geometry_msgs::Polygon &polygon) {
             pt.x = pose_in_map.position.x;
             pt.y = pose_in_map.position.y;
             pt.z = 0.0;
-//                ROS_INFO_STREAM("Adding First Point: " << pt);
+            ROS_INFO_STREAM("Adding First Point: " << pt);
 
             polygon.points.push_back(pt);
             {
@@ -287,7 +287,7 @@ bool AreaRecordingBehavior::recordNewPolygon(geometry_msgs::Polygon &polygon) {
                 pt.x = pose_in_map.position.x;
                 pt.y = pose_in_map.position.y;
                 pt.z = 0.0;
-//                    ROS_INFO_STREAM("Adding Point: " << pt);
+                ROS_INFO_STREAM("Adding Point: " << pt);
                 polygon.points.push_back(pt);
                 {
                     geometry_msgs::Point vpt;

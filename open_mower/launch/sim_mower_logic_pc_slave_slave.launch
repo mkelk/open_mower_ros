@@ -1,0 +1,8 @@
+<!--
+    Use this file to record new mowing and navigation areas in the simulator.
+ -->
+<launch>
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find open_mower)/rviz/sim_mower_logic.rviz" required="true" />
+    <node pkg="rqt_reconfigure" type="rqt_reconfigure" name="rqt_reconfigure">
+    </node>
+</launch>

@@ -19,8 +19,10 @@ find_package(catkin REQUIRED COMPONENTS
   tf2
   tf2_geometry_msgs
   tf2_ros
-        sensor_msgs
-        robot_localization
+  ublox_msgs
+  ublox_gps
+  sensor_msgs
+  robot_localization
 )
 
 

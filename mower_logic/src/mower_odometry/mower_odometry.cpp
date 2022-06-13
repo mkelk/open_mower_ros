@@ -20,7 +20,7 @@
 #include <mower_msgs/Status.h>
 #include <sensor_msgs/Imu.h>
 #include <nav_msgs/Odometry.h>
-#include "ublox_msgs/NavRELPOSNED9.h"
+#include <ublox_msgs/NavRELPOSNED9.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
@@ -66,7 +66,9 @@ geometry_msgs::Quaternion orientation_result;
 
 
 // (ticks / revolution) / (m / revolution)
-#define TICKS_PER_M (993.0 / (0.19*M_PI))
+#define TICKS_PER_REV 160 // Mowgli value from @ow, https://discord.com/channels/958476543846412329/970377157945733121/984898691720695908
+#define TICKS_PER_M (TICKS_PER_REV / (WHEEL_DIAMETER*M_PI))
+
 
 
 tf2_ros::Buffer tfBuffer;

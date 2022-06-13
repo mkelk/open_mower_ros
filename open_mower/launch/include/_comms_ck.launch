@@ -1,0 +1,27 @@
+<!--
+    This launch file starts all communication needed in order to control and localize the bot.
+    I.e. the raw data comms to the Low Level Board, the GPS, etc.
+-->
+<launch>
+    <!-- TODO: Add parameter for simulation -->
+    <arg name="rover_version"/>  <!-- for selecting which rover to use -->
+
+    <node pkg="mower_comms_ck" type="mower_comms.py" name="mower_comms" output="screen" required="true">
+        <param name="ll_serial_port" value="/dev/ttyAMA0"/>
+        <param name="left_esc_serial_port" value="/dev/ttyAMA2"/>
+        <param name="right_esc_serial_port" value="/dev/ttyAMA4"/>
+        <param name="mow_esc_serial_port" value="/dev/ttyAMA3"/>
+    </node>
+    
+    <include file="$(find open_mower)/launch/include/_gps_melk.launch">
+        <arg name="serial_port" default="ttyACM0"/>
+        <arg name="ntrip_ip" default="192.168.1.122"/>
+        <arg name="ntrip_port" default="2101"/>
+        <arg name="ntrip_endpoint" default="BASE1"/>
+        <arg name="ntrip_user" default="gps"/>
+        <arg name="ntrip_password" default="gps"/>
+    </include>
+    <include file="$(find rover)/launch/include/_rover.launch" >
+        <arg name="rover_version" value="$(eval arg('rover_version'))" />
+    </include>
+</launch>

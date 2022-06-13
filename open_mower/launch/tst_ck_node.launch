@@ -1,0 +1,8 @@
+<!--
+    Use this file to test running wheels on Cherokey
+ -->
+<launch>
+    <include file="$(find cherokey)/launch/include/_rosserial.launch"/>
+
+    <node pkg="cherokey" type="ck_controller_2.py" name="ck_controller_2" required="true" output="screen" />
+</launch>

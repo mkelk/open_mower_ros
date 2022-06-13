@@ -1,0 +1,8 @@
+<!--
+    Use this file to stop Cherokey motors
+ -->
+<launch>
+    <include file="$(find cherokey)/launch/include/_rosserial.launch"/>
+
+    <node pkg="cherokey" type="stop_wheels.py" name="stop_wheels" required="true" />
+</launch>
