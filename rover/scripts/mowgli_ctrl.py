@@ -9,48 +9,64 @@ import math
 import rospy
 from std_msgs.msg import String
 from std_msgs.msg import UInt16
+from std_msgs.msg import Float32
 from geometry_msgs.msg import Twist
 from cherokey_msgs.msg import Ticks
 
-left_encoder_offset = 0
-left_encoder_latest_read = 0
-right_encoder_offset = 0
-right_encoder_latest_read = 0
-ticks = Ticks(0,0)
+class Mowgli_encoder():
+    def __init__(self):
+        self._latest_raw_reading = 0
+        self._currentValue = 1000
+    def update(self, raw_reading, speed):
+        if raw_reading != 0: 
+            # movement, record directed change
+            # 0 means no movement OR a reset - in both cases, do not change value
+            dir = 1 if speed > 0 else -1
+            self._currentValue += dir * (raw_reading - self._latest_raw_reading)
+        self._latest_raw_reading = raw_reading
+    def get_ticks(self):
+        return self._currentValue
+        
+left_encoder = Mowgli_encoder()
+right_encoder = Mowgli_encoder()
+
+left_speed = 0
+right_speed = 0
+
 
 def _rover_cmd_vel_callback(msg):
     rospy.logdebug(f"/rover/cmd_vel received: {msg} - sending to mowgli")
     pub_mowgli_cmd_vel.publish(msg) 
 
+def _mowgli_left_speed_callback(msg):
+    global left_speed
+    left_speed = msg.data
+
+def _mowgli_right_speed_callback(msg):
+    global right_speed
+    right_speed = msg.data
+
+def publish_ticks():
+    global left_encoder
+    global right_encoder
+    ticks = Ticks(left_encoder.get_ticks(), right_encoder.get_ticks())
+    pub_ticks.publish(ticks)
+
 def _mowgli_left_encoder_callback(msg):
     rospy.logdebug(f"/mowgli/left_encoder_val received: {msg}")
-    global left_encoder_offset
-    global left_encoder_latest_read
-    global ticks
-    current = msg.data
-    if current == 0 and not left_encoder_latest_read == 0:
-        # fresh revert to zero, remember new offset
-        left_encoder_offset = left_encoder_offset + left_encoder_latest_read
-        left_encoder_latest_read = 0
-    if current !=0:
-        left_encoder_latest_read = current
-    ticks.ticksLeft = left_encoder_offset + current
-    pub_ticks.publish(ticks)
+    global left_speed
+    global left_encoder
+    raw_encoder_reading = msg.data
+    left_encoder.update(raw_encoder_reading, left_speed)
+    publish_ticks()
 
 def _mowgli_right_encoder_callback(msg):
     rospy.logdebug(f"/mowgli/right_encoder_val received: {msg}")
-    global right_encoder_offset
-    global right_encoder_latest_read
-    global ticks
-    current = msg.data
-    if current == 0 and not right_encoder_latest_read == 0:
-        # fresh revert to zero, remember new offset
-        right_encoder_offset = right_encoder_offset + right_encoder_latest_read
-        right_encoder_latest_read = 0
-    if current !=0:
-        right_encoder_latest_read = current
-    ticks.ticksRight = right_encoder_offset + current
-    pub_ticks.publish(ticks)
+    global right_speed
+    global right_encoder
+    raw_encoder_reading = msg.data
+    right_encoder.update(raw_encoder_reading, right_speed)
+    publish_ticks()
 
 
 if __name__ == '__main__':
@@ -76,43 +92,13 @@ if __name__ == '__main__':
     # listen for /mowgli/right_encoder_val from mowgli
     _mowgli_right_encoder_subscription = rospy.Subscriber('/mowgli/right_encoder_val', UInt16, _mowgli_right_encoder_callback, queue_size=10)
 
-    # start subscriber to listen for ticks from Mowgli
-    #sub_ticks = rospy.Subscriber('/rover_ll/ticks', Ticks, ticks_callback, queue_size=10)
+    # listen for /mowgli/left_speed_val from mowgli
+    _mowgli_left_speed_subscription = rospy.Subscriber('/mowgli/left_speed_val', Float32, _mowgli_left_speed_callback, queue_size=10)
+    # listen for /mowgli/left_speed_val from mowgli
+    _mowgli_right_speed_subscription = rospy.Subscriber('/mowgli/right_speed_val', Float32, _mowgli_right_speed_callback, queue_size=10)
 
-
-
-
-    # # do some basic tests
-    # cherokey.speed = 0.0 # in meters/sec
-    # cherokey._set_motor_speeds()
-    # rospy.sleep(2.0)
-
-    # cherokey.speed = 0.0 # in meters/sec
-    # cherokey._set_motor_speeds()
-    # rospy.sleep(10.0)
-
-    # rospy.loginfo("normal setting")
-    # cherokey.speed = 0.25
-    # cherokey.spin = 0.0
-    # cherokey._set_motor_speeds()
-    # rospy.sleep(4.0)
-
-    # cherokey.speed = 0.0 # in meters/sec
-    # cherokey._set_motor_speeds()
-    # rospy.sleep(1.0)
-
-
-    # rospy.loginfo("problem setting")
-    # cherokey.speed = -0.5 
-    # cherokey.spin = -0.16666666666666666 
-    # cherokey._set_motor_speeds()
-    # rospy.sleep(5)
-
-    # rospy.loginfo("stop")
-    # cherokey.speed = 0 # in meters/sec
-    # cherokey.spin = 0.0
-    # cherokey._set_motor_speeds()
-    # rospy.sleep(1.0)
+    # listen for /cmd_vel from OpenMower
+    _cmd_vel_subscription = rospy.Subscriber('/rover/cmd_vel', Twist, _rover_cmd_vel_callback, queue_size=10)
 
 
     rospy.spin()
