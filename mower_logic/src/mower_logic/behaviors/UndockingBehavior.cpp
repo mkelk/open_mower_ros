@@ -125,8 +125,7 @@ bool UndockingBehavior::waitForGPS() {
     setGPS(true);
     ros::Rate odom_rate(1.0);
     while (ros::ok()) {
-        ROS_DEBUG_STREAM("config.melk_ignore_accuracy: " << config.melk_ignore_accuracy);
-        if (last_odom.pose.covariance[0] < 0.05 || config.melk_ignore_accuracy) {
+        if (last_odom.pose.covariance[0] < 0.05) {
             ROS_INFO("Got good gps, let's go");
             break;
         } else {
